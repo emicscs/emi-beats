@@ -157,12 +157,12 @@ export default function MusicPlayer({ initialTracks = [] }: MusicPlayerProps) {
         // Create lowpass filter
         const lowpass = audioContext.createBiquadFilter();
         lowpass.type = 'lowpass';
-        lowpass.frequency.value = 8000; // Lower frequency for more "crushed" sound
+        lowpass.frequency.value = 2000; // Lower frequency for more "crushed" sound
         lowpassRef.current = lowpass;
         
         // Create distortion
         const distortion = audioContext.createWaveShaper();
-        distortion.curve = makeDistortionCurve(10); // Amount of distortion
+        distortion.curve = makeDistortionCurve(0); // Amount of distortion
         distortionRef.current = distortion;
         
         // Connect the nodes
@@ -241,7 +241,7 @@ export default function MusicPlayer({ initialTracks = [] }: MusicPlayerProps) {
         
         const lowpass = audioContextRef.current.createBiquadFilter();
         lowpass.type = 'lowpass';
-        lowpass.frequency.value = 6000;
+        lowpass.frequency.value = 1000;
         lowpassRef.current = lowpass;
         
         const distortion = audioContextRef.current.createWaveShaper();
@@ -589,7 +589,7 @@ export default function MusicPlayer({ initialTracks = [] }: MusicPlayerProps) {
           }}
         >
           {/* Title Bar */}
-          <WindowsTitleBar title="Windows Media Player" />
+          <WindowsTitleBar title="emi player 🎶" />
 
           {/* Content */}
           <div

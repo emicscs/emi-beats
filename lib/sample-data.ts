@@ -8,7 +8,7 @@ export const sampleTracks: Track[] = [
     album: "365",
     duration: 217,
     cover: "/album-covers/miscellaneous_17.jpg",
-    file: "/music/365.mp3",
+    file: "/music/Best Friend.mp3",
   },
   {
     id: "track-2",
