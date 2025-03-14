@@ -174,6 +174,147 @@ export default function BackgroundSelector({
       name: "metro 32",
       path: "/backgrounds/metro_32.jpg",
     },
+    {
+      id: "33",
+      name: "asadal 1",
+      path: "/backgrounds/asadal_stock_1.jpg",
+    },
+    {
+      id: "34",
+      name: "asadal 2",
+      path: "/backgrounds/asadal_stock_2.jpg",
+    },
+    {
+      id: "35",
+      name: "asadal 3",
+      path: "/backgrounds/asadal_stock_3.jpg",
+    },
+    {
+      id: "36",
+      name: "asadal 4",
+      path: "/backgrounds/asadal_stock_4.jpg",
+    },
+    {
+      id: "37",
+      name: "asadal 5",
+      path: "/backgrounds/asadal_stock_5.jpg",
+    },
+    {
+      id: "38",
+      name: "asadal 6",
+      path: "/backgrounds/asadal_stock_6.jpg",
+    },
+    {
+      id: "39",
+      name: "asadal 7",
+      path: "/backgrounds/asadal_stock_7.jpg",
+    },  
+    {
+      id: "40",
+      name: "asadal 8",
+      path: "/backgrounds/asadal_stock_8.jpg",
+    },
+    {
+      id: "41",
+      name: "asadal 9",
+      path: "/backgrounds/asadal_stock_9.jpg",
+    },
+    {
+      id: "42",
+      name: "asadal 10",
+      path: "/backgrounds/asadal_stock_10.jpg",
+    },
+    {
+      id: "43",
+      name: "asadal 11",
+      path: "/backgrounds/asadal_stock_11.jpg",
+    },
+    {
+      id: "44",
+      name: "asadal 12",
+      path: "/backgrounds/asadal_stock_12.jpg",
+    },
+    {
+      id: "45",
+      name: "asadal 13",
+      path: "/backgrounds/asadal_stock_13.jpg",
+    },  
+    {
+      id: "46",
+      name: "asadal 14",
+      path: "/backgrounds/asadal_stock_14.jpg",
+    },  
+    {
+      id: "47",
+      name: "asadal 15",
+      path: "/backgrounds/asadal_stock_15.jpg",
+    },  
+    {
+      id: "48",
+      name: "asadal 16",
+      path: "/backgrounds/asadal_stock_16.jpg",
+    },  
+    { 
+      id: "49",
+      name: "asadal 17",
+      path: "/backgrounds/asadal_stock_17.jpg",
+    },  
+    {
+      id: "50",
+      name: "asadal 18",  
+      path: "/backgrounds/asadal_stock_18.jpg",
+    },  
+    {
+      id: "51",
+      name: "asadal 19",
+      path: "/backgrounds/asadal_stock_19.jpg",
+    },  
+    {
+      id: "52",
+      name: "asadal 20",
+      path: "/backgrounds/asadal_stock_20.jpg",
+    },    
+    {
+      id: "53",
+      name: "asadal 21",
+      path: "/backgrounds/asadal_stock_21.jpg",
+    },    
+    {
+      id: "54",
+      name: "asadal 22",
+      path: "/backgrounds/asadal_stock_22.jpg",
+    },      
+    {
+      id: "55",
+      name: "asadal 23",
+      path: "/backgrounds/asadal_stock_23.jpg",
+    },    
+    {
+      id: "56", 
+      name: "asadal 24",
+      path: "/backgrounds/asadal_stock_24.jpg",
+    },    
+    {
+      id: "57",
+      name: "asadal 25",  
+      path: "/backgrounds/asadal_stock_25.jpg",
+    },    
+    {
+      id: "58",
+      name: "asadal 26",
+      path: "/backgrounds/asadal_stock_26.jpg", 
+    },    
+    {
+      id: "59",
+      name: "asadal 27",
+      path: "/backgrounds/asadal_stock_27.jpg",
+    },      
+    {
+      id: "60",
+      name: "asadal 28",
+      path: "/backgrounds/asadal_stock_28.jpg",
+    },    
+    
   ]
 
   return (

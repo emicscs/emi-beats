@@ -11,23 +11,50 @@ import Playlist from "./playlist"
 import BackgroundSelector from "./background-selector"
 import AlbumArtSelector from "./album-art-selector"
 import ContextMenu from "./context-menu"
-import RecentImagesBar from "./recent-images-bar"
 import WindowsTitleBar from "./windows-title-bar"
-import { createPopoutWindow } from "@/lib/popout-window"
 
 interface MusicPlayerProps {
-  initialTracks: Track[]
+  initialTracks?: Track[]
 }
 
-export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
-  const [tracks, setTracks] = useState<Track[]>(initialTracks)
+// Define a Playlist type
+interface Playlist {
+  id: string;
+  name: string;
+  tracks: Track[];
+}
+
+export default function MusicPlayer({ initialTracks = [] }: MusicPlayerProps) {
+  // Default album cover - define this before using it in state
+  const defaultAlbumCover = "/album-covers/miscellaneous_17.jpg"
+  
+  // Create a default track if no initialTracks are provided
+  const defaultTrack: Track = {
+    id: 'default-track',
+    title: 'Sample Track',
+    artist: 'Sample Artist',
+    album: 'Sample Album',
+    duration: 0,
+    cover: defaultAlbumCover,
+    file: ''
+  }
+  
+  // Initialize with default track if no tracks are provided
+  const startingTracks = initialTracks.length > 0 
+    ? initialTracks.map(track => ({
+        ...track,
+        cover: track.cover || defaultAlbumCover // Ensure all tracks have a cover
+      }))
+    : [defaultTrack]
+  
+  const [tracks, setTracks] = useState<Track[]>(startingTracks)
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0)
   const [isPlaying, setIsPlaying] = useState<boolean>(false)
   const [currentTime, setCurrentTime] = useState<number>(0)
   const [duration, setDuration] = useState<number>(0)
   const [volume, setVolume] = useState<number>(0.7)
   const [isMuted, setIsMuted] = useState<boolean>(false)
-  const [showPlaylist, setShowPlaylist] = useState<boolean>(false)
+  const [showPlaylist, setShowPlaylist] = useState<boolean>(true)
   const [background, setBackground] = useState<string>("/backgrounds/windows7-default.jpg")
   const [customBackground, setCustomBackground] = useState<string | null>(null)
   const [showBackgroundSelector, setShowBackgroundSelector] = useState<boolean>(false)
@@ -36,29 +63,257 @@ export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
   const [contextMenuTrackIndex, setContextMenuTrackIndex] = useState<number | null>(null)
   const [showAlbumArtSelector, setShowAlbumArtSelector] = useState<boolean>(false)
   const [albumArtSelectorTrackIndex, setAlbumArtSelectorTrackIndex] = useState<number | null>(null)
-  const [popoutWindow, setPopoutWindow] = useState<Window | null>(null)
-  const [recentBackgrounds, setRecentBackgrounds] = useState<string[]>([])
-  const [recentAlbumArts, setRecentAlbumArts] = useState<string[]>([])
-  const [showRecentImages, setShowRecentImages] = useState<boolean>(false)
+  
+  // New state for multiple playlists
+  const [playlists, setPlaylists] = useState<Playlist[]>([
+    { id: 'main', name: 'Main Library', tracks: startingTracks }
+  ])
+  const [activePlaylistId, setActivePlaylistId] = useState<string>('main')
+  const [showNewPlaylistInput, setShowNewPlaylistInput] = useState<boolean>(false)
+  const [newPlaylistName, setNewPlaylistName] = useState<string>('')
+  const gifPath = "/gifs/eminew.gif" // Set your GIF path here
+  const [youtubeUrl, setYoutubeUrl] = useState<string>('')
+  const [showYoutubeInput, setShowYoutubeInput] = useState<boolean>(false)
 
   const audioRef = useRef<HTMLAudioElement>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null)
+  const lowpassRef = useRef<BiquadFilterNode | null>(null)
+  const distortionRef = useRef<WaveShaperNode | null>(null)
+  const isAudioSetupComplete = useRef<boolean>(false)
   const progressBarRef = useRef<HTMLDivElement>(null)
   const volumeBarRef = useRef<HTMLDivElement>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
 
-  const currentTrack = tracks[currentTrackIndex]
+  // Get the active playlist
+  const activePlaylist = playlists.find(p => p.id === activePlaylistId) || playlists[0]
+  
+  // Update tracks state when active playlist changes
+  useEffect(() => {
+    if (activePlaylist) {
+      setTracks(activePlaylist.tracks)
+      setCurrentTrackIndex(0)
+      setIsPlaying(false)
+    }
+  }, [activePlaylistId])
+  
+  // Update the active playlist when tracks change
+  useEffect(() => {
+    if (activePlaylist) {
+      setPlaylists(prevPlaylists => 
+        prevPlaylists.map(p => 
+          p.id === activePlaylistId 
+            ? { ...p, tracks } 
+            : p
+        )
+      )
+    }
+  }, [tracks, activePlaylistId])
+
+  // Create a new playlist
+  const createNewPlaylist = () => {
+    if (newPlaylistName.trim()) {
+      const newPlaylist: Playlist = {
+        id: `playlist-${Date.now()}`,
+        name: newPlaylistName.trim(),
+        tracks: [] // Start with an empty playlist
+      }
+      setPlaylists([...playlists, newPlaylist])
+      setActivePlaylistId(newPlaylist.id)
+      setNewPlaylistName('')
+      setShowNewPlaylistInput(false)
+    }
+  }
+
+  // Delete a playlist
+  const deletePlaylist = (playlistId: string) => {
+    if (playlists.length <= 1) return // Don't delete the last playlist
+    
+    setPlaylists(playlists.filter(p => p.id !== playlistId))
+    
+    // If the active playlist is deleted, switch to the first available playlist
+    if (activePlaylistId === playlistId) {
+      const remainingPlaylists = playlists.filter(p => p.id !== playlistId)
+      setActivePlaylistId(remainingPlaylists[0]?.id || 'main')
+    }
+  }
+
+  // Set up audio processing once when the component mounts
+  useEffect(() => {
+    // Initialize audio processing when the audio element is available
+    const setupAudioProcessing = () => {
+      if (!audioRef.current || isAudioSetupComplete.current) return;
+      
+      try {
+        // Create audio context
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        const audioContext = new AudioContext();
+        audioContextRef.current = audioContext;
+        
+        // Create source node
+        const source = audioContext.createMediaElementSource(audioRef.current);
+        sourceNodeRef.current = source;
+        
+        // Create lowpass filter
+        const lowpass = audioContext.createBiquadFilter();
+        lowpass.type = 'lowpass';
+        lowpass.frequency.value = 8000; // Lower frequency for more "crushed" sound
+        lowpassRef.current = lowpass;
+        
+        // Create distortion
+        const distortion = audioContext.createWaveShaper();
+        distortion.curve = makeDistortionCurve(10); // Amount of distortion
+        distortionRef.current = distortion;
+        
+        // Connect the nodes
+        source.connect(lowpass);
+        lowpass.connect(distortion);
+        distortion.connect(audioContext.destination);
+        
+        // Mark setup as complete
+        isAudioSetupComplete.current = true;
+        
+        console.log("Audio processing setup complete");
+      } catch (error) {
+        console.error("Error setting up audio processing:", error);
+      }
+    };
+    
+    // Try to set up audio processing
+    setupAudioProcessing();
+    
+    // Clean up function
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(err => {
+          console.error("Error closing audio context:", err);
+        });
+      }
+    };
+  }, []);
+  
+  // Helper function to create distortion curve
+  function makeDistortionCurve(amount: number) {
+    const k = typeof amount === 'number' ? amount : 50;
+    const n_samples = 44100;
+    const curve = new Float32Array(n_samples);
+    const deg = Math.PI / 180;
+    
+    for (let i = 0; i < n_samples; ++i) {
+      const x = (i * 2) / n_samples - 1;
+      curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+    }
+    
+    return curve;
+  }
+  
+  // Resume audio context when user interacts with the page
+  useEffect(() => {
+    const resumeAudioContext = () => {
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume().catch(err => {
+          console.error("Error resuming audio context:", err);
+        });
+      }
+    };
+    
+    // Add event listeners for user interaction
+    document.addEventListener('click', resumeAudioContext);
+    document.addEventListener('keydown', resumeAudioContext);
+    document.addEventListener('touchstart', resumeAudioContext);
+    
+    return () => {
+      document.removeEventListener('click', resumeAudioContext);
+      document.removeEventListener('keydown', resumeAudioContext);
+      document.removeEventListener('touchstart', resumeAudioContext);
+    };
+  }, []);
+  
+  // Handle play/pause
+  const togglePlay = () => {
+    if (audioRef.current) {
+      // Ensure audio processing is set up
+      if (!isAudioSetupComplete.current) {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        audioContextRef.current = new AudioContext();
+        const source = audioContextRef.current.createMediaElementSource(audioRef.current);
+        sourceNodeRef.current = source;
+        
+        const lowpass = audioContextRef.current.createBiquadFilter();
+        lowpass.type = 'lowpass';
+        lowpass.frequency.value = 6000;
+        lowpassRef.current = lowpass;
+        
+        const distortion = audioContextRef.current.createWaveShaper();
+        distortion.curve = makeDistortionCurve(30);
+        distortionRef.current = distortion;
+        
+        source.connect(lowpass);
+        lowpass.connect(distortion);
+        distortion.connect(audioContextRef.current.destination);
+        
+        isAudioSetupComplete.current = true;
+      }
+      
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        // Resume audio context if it's suspended
+        if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+          audioContextRef.current.resume().catch(err => {
+            console.error("Error resuming audio context:", err);
+          });
+        }
+        
+        audioRef.current.play().catch(error => {
+          console.error("Playback failed:", error);
+          setIsPlaying(false);
+        });
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+  
+  // Update audio element when track changes
+  useEffect(() => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        // Resume audio context if it's suspended
+        if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+          audioContextRef.current.resume().catch(err => {
+            console.error("Error resuming audio context:", err);
+          });
+        }
+        
+        audioRef.current.play().catch((error) => {
+          console.error("Playback failed:", error)
+          setIsPlaying(false)
+        })
+      }
+    }
+  }, [currentTrackIndex, isPlaying]);
+
+  const currentTrack = tracks[currentTrackIndex] || {
+    id: 'default',
+    title: 'No Track Selected',
+    artist: 'Unknown Artist',
+    album: 'Unknown Album',
+    duration: 0,
+    cover: defaultAlbumCover,
+    file: ''
+  }
 
   // Default album art images
   const defaultAlbumArts = [
-    "/album-covers/cover1.jpg",
-    "/album-covers/cover2.jpg",
-    "/album-covers/cover3.jpg",
-    "/album-covers/cover4.jpg",
-    "/album-covers/cover5.jpg",
-    "/album-covers/cover6.jpg",
+    "/album-covers/miscellaneous_17.jpg",
+    "/album-covers/miscellaneous_18.jpg",
+    "/album-covers/miscellaneous_19.jpg",
+    "/album-covers/miscellaneous_20.jpg",
+    "/album-covers/miscellaneous_21.jpg",
+    "/album-covers/miscellaneous_22.jpg",
   ]
 
-  // Handle file upload
+  // Handle file upload - add to the active playlist only
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
 
@@ -66,16 +321,16 @@ export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
 
     Array.from(e.target.files).forEach((file) => {
       if (file.type === "audio/mpeg") {
-        // Assign a random album art from the default set
-        const randomAlbumArt = defaultAlbumArts[Math.floor(Math.random() * defaultAlbumArts.length)]
+        // Always use the first album art (miscellaneous_17.jpg) for consistency
+        const defaultArt = defaultAlbumArts[0]
 
         const newTrack: Track = {
           id: `track-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           title: file.name.replace(".mp3", ""),
-          artist: "Unknown Artist",
-          album: "Unknown Album",
+          artist: "",
+          album: "",
           duration: 0,
-          cover: randomAlbumArt,
+          cover: defaultArt,
           file: URL.createObjectURL(file),
         }
 
@@ -83,19 +338,21 @@ export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
       }
     })
 
+    // Add tracks to the active playlist only
     setTracks([...tracks, ...newTracks])
   }
 
-  // Handle play/pause
-  const togglePlay = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause()
-      } else {
-        audioRef.current.play()
+  // Modified handleAlbumArtChange to work with only the main playlist
+  const handleAlbumArtChange = (artPath: string) => {
+    if (albumArtSelectorTrackIndex !== null) {
+      const newTracks = [...tracks]
+      newTracks[albumArtSelectorTrackIndex] = {
+        ...newTracks[albumArtSelectorTrackIndex],
+        cover: artPath,
       }
-      setIsPlaying(!isPlaying)
+      setTracks(newTracks)
     }
+    setShowAlbumArtSelector(false)
   }
 
   // Handle previous track
@@ -177,7 +434,7 @@ export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
     setCustomBackground(null)
   }
 
-  // Update the handleCustomBackgroundUpload function to save references
+  // Handle custom background upload
   const handleCustomBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return
 
@@ -185,15 +442,10 @@ export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
     if (file.type.startsWith("image/")) {
       const url = URL.createObjectURL(file)
       setCustomBackground(url)
-
-      // Save to recent backgrounds if not already there
-      if (!recentBackgrounds.includes(url)) {
-        setRecentBackgrounds((prev) => [url, ...prev.slice(0, 9)]) // Keep max 10 items
-      }
     }
   }
 
-  // Update the handleCustomAlbumArtUpload function to save references
+  // Handle custom album art upload
   const handleCustomAlbumArtUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0] || albumArtSelectorTrackIndex === null) return
 
@@ -206,12 +458,6 @@ export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
         cover: url,
       }
       setTracks(newTracks)
-
-      // Save to recent album arts if not already there
-      if (!recentAlbumArts.includes(url)) {
-        setRecentAlbumArts((prev) => [url, ...prev.slice(0, 9)]) // Keep max 10 items
-      }
-
       setShowAlbumArtSelector(false)
     }
   }
@@ -240,28 +486,35 @@ export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
 
   // Handle remove track
   const handleRemoveTrack = (index: number) => {
+    // Create a copy of the tracks array
     const newTracks = [...tracks]
+    
+    // Remove the track at the specified index
     newTracks.splice(index, 1)
-
-    // Handle edge cases
-    if (newTracks.length === 0) {
-      // No tracks left
-      setTracks([])
-      setCurrentTrackIndex(0)
-      setIsPlaying(false)
-    } else if (index === currentTrackIndex) {
-      // Removing the currently playing track
-      if (index >= newTracks.length) {
-        // If it was the last track, go to the new last track
-        setCurrentTrackIndex(newTracks.length - 1)
+    
+    // Update the tracks state
+    setTracks(newTracks)
+    
+    // If the removed track is the current track or comes before it,
+    // adjust the current track index
+    if (index === currentTrackIndex) {
+      // If it's the last track, go to the previous track
+      if (index === tracks.length - 1) {
+        setCurrentTrackIndex(Math.max(0, index - 1))
       }
-      // Otherwise keep the same index, which will now point to the next track
+      // Otherwise, keep the same index (which will now point to the next track)
+      
+      // Stop playback if there are no more tracks
+      if (newTracks.length === 0) {
+        setIsPlaying(false)
+      }
     } else if (index < currentTrackIndex) {
-      // Removing a track before the current one, adjust the index
+      // If the removed track comes before the current track,
+      // decrement the current track index
       setCurrentTrackIndex(currentTrackIndex - 1)
     }
-
-    setTracks(newTracks)
+    
+    // Close context menu if it's open
     setShowContextMenu(false)
   }
 
@@ -270,162 +523,6 @@ export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
     setAlbumArtSelectorTrackIndex(index)
     setShowAlbumArtSelector(true)
     setShowContextMenu(false)
-  }
-
-  // Handle album art change
-  const handleAlbumArtChange = (artPath: string) => {
-    if (albumArtSelectorTrackIndex !== null) {
-      const newTracks = [...tracks]
-      newTracks[albumArtSelectorTrackIndex] = {
-        ...newTracks[albumArtSelectorTrackIndex],
-        cover: artPath,
-      }
-      setTracks(newTracks)
-    }
-    setShowAlbumArtSelector(false)
-  }
-
-  // Handle pop-out player
-  const handlePopOut = () => {
-    const newPopoutWindow = createPopoutWindow({
-      currentTrack,
-      currentTime,
-      duration,
-      isPlaying,
-      volume,
-      isMuted,
-      tracks,
-      currentTrackIndex,
-      background: customBackground || background,
-      formatTime,
-    })
-
-    if (newPopoutWindow) {
-      setPopoutWindow(newPopoutWindow)
-
-      // Set up message listener for the main window
-      const messageHandler = (event: MessageEvent) => {
-        if (event.source === newPopoutWindow) {
-          const { type, index, volume, position } = event.data
-
-          switch (type) {
-            case "TOGGLE_PLAY":
-              togglePlay()
-              break
-            case "PREV_TRACK":
-              playPreviousTrack()
-              break
-            case "NEXT_TRACK":
-              playNextTrack()
-              break
-            case "TOGGLE_MUTE":
-              toggleMute()
-              break
-            case "SET_VOLUME":
-              if (typeof volume === "number" && audioRef.current) {
-                setVolume(volume)
-                audioRef.current.volume = volume
-                if (volume === 0) {
-                  setIsMuted(true)
-                } else if (isMuted) {
-                  setIsMuted(false)
-                  audioRef.current.muted = false
-                }
-              }
-              break
-            case "SEEK":
-              if (typeof position === "number" && audioRef.current) {
-                audioRef.current.currentTime = position * duration
-              }
-              break
-            case "SELECT_TRACK":
-              if (typeof index === "number") {
-                handleTrackSelect(index)
-              }
-              break
-            case "POPOUT_CLOSED":
-              window.removeEventListener("message", messageHandler)
-              setPopoutWindow(null)
-              break
-          }
-        }
-      }
-
-      window.addEventListener("message", messageHandler)
-    }
-  }
-
-  // Update the popout window
-  useEffect(() => {
-    if (popoutWindow && !popoutWindow.closed) {
-      // Send updated data to popout window
-      popoutWindow.postMessage(
-        {
-          type: "UPDATE_PLAYER",
-          data: {
-            cover: currentTrack?.cover || "/placeholder.svg?height=200&width=200",
-            title: currentTrack?.title || "No Track Selected",
-            artist: currentTrack?.artist || "Unknown Artist",
-            album: currentTrack?.album || "Unknown Album",
-            progress: (currentTime / duration) * 100,
-            currentTime: formatTime(currentTime),
-            duration: formatTime(duration),
-            isPlaying: isPlaying,
-            volume: volume * 100,
-            isMuted: isMuted,
-            tracks: tracks.map((track) => ({
-              ...track,
-              duration: formatTime(track.duration),
-            })),
-            currentTrackIndex: currentTrackIndex,
-            background: customBackground || background,
-          },
-        },
-        "*",
-      )
-    }
-  }, [
-    currentTrack,
-    currentTime,
-    duration,
-    isPlaying,
-    volume,
-    isMuted,
-    tracks,
-    currentTrackIndex,
-    popoutWindow,
-    customBackground,
-    background,
-  ])
-
-  // Update audio element when track changes
-  useEffect(() => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.play().catch((error) => {
-          console.error("Playback failed:", error)
-          setIsPlaying(false)
-        })
-      }
-    }
-  }, [currentTrackIndex, isPlaying])
-
-  // Apply album art from recent images
-  const applyRecentAlbumArt = (artUrl: string) => {
-    if (currentTrack) {
-      const newTracks = [...tracks]
-      newTracks[currentTrackIndex] = {
-        ...newTracks[currentTrackIndex],
-        cover: artUrl,
-      }
-      setTracks(newTracks)
-    }
-  }
-
-  // Apply background from recent images
-  const applyRecentBackground = (bgUrl: string) => {
-    setCustomBackground(bgUrl)
-    setBackground("")
   }
 
   return (
@@ -440,8 +537,38 @@ export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
         alignItems: "center",
         justifyContent: "center",
         padding: "20px",
+        position: "relative",
       }}
     >
+      {/* GIF Display Area outside the box - now using file path */}
+      <div
+        style={{
+          position: "absolute",
+          top: "10px",
+          left: "10px",
+          zIndex: 10,
+          width: "100px",
+          height: "100px",
+          overflow: "hidden",
+          borderRadius: "4px",
+          border: "1px solid rgba(255, 255, 255, 0.3)",
+          background: "rgba(0, 0, 0, 0.2)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <img 
+          src={gifPath} 
+          alt="Animated GIF" 
+          style={{ 
+            width: "100%", 
+            height: "100%", 
+            objectFit: "cover" 
+          }} 
+        />
+      </div>
+
       <div
         style={{
           width: "100%",
@@ -526,6 +653,155 @@ export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
               </div>
             </div>
 
+            {/* Playlist Tabs and Playlist Display */}
+            <div style={{ marginBottom: "20px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  borderBottom: "1px solid #ccc",
+                  marginBottom: "10px",
+                  overflowX: "auto",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {playlists.map((playlist) => (
+                  <div
+                    key={playlist.id}
+                    onClick={() => setActivePlaylistId(playlist.id)}
+                    style={{
+                      padding: "8px 16px",
+                      cursor: "pointer",
+                      borderTopLeftRadius: "4px",
+                      borderTopRightRadius: "4px",
+                      marginRight: "4px",
+                      background: activePlaylistId === playlist.id
+                        ? "linear-gradient(to bottom, #f0f0f0, #e0e0e0)"
+                        : "transparent",
+                      border: activePlaylistId === playlist.id
+                        ? "1px solid #ccc"
+                        : "1px solid transparent",
+                      borderBottom: activePlaylistId === playlist.id
+                        ? "1px solid #e0e0e0"
+                        : "none",
+                      position: "relative",
+                      top: activePlaylistId === playlist.id ? "1px" : "0",
+                      fontWeight: activePlaylistId === playlist.id ? 600 : 400,
+                      color: "#333",
+                      fontSize: "14px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <span>{playlist.name}</span>
+                    {playlists.length > 1 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deletePlaylist(playlist.id);
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          color: "#999",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: "16px",
+                          height: "16px",
+                          borderRadius: "50%",
+                        }}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <div
+                  onClick={() => setShowNewPlaylistInput(true)}
+                  style={{
+                    padding: "8px 16px",
+                    cursor: "pointer",
+                    color: "#666",
+                    fontSize: "14px",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  + New Playlist
+                </div>
+              </div>
+
+              {/* New Playlist Input */}
+              {showNewPlaylistInput && (
+                <div
+                  style={{
+                    marginBottom: "10px",
+                    display: "flex",
+                    gap: "8px",
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={newPlaylistName}
+                    onChange={(e) => setNewPlaylistName(e.target.value)}
+                    placeholder="Playlist name"
+                    style={{
+                      flex: 1,
+                      padding: "6px 12px",
+                      border: "1px solid #ccc",
+                      borderRadius: "3px",
+                      fontSize: "14px",
+                    }}
+                    autoFocus
+                  />
+                  <button
+                    onClick={createNewPlaylist}
+                    style={{
+                      padding: "6px 12px",
+                      background: "linear-gradient(to bottom, #f0f0f0, #e0e0e0)",
+                      border: "1px solid #ccc",
+                      borderRadius: "3px",
+                      boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+                      color: "#333",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Create
+                  </button>
+                  <button
+                    onClick={() => setShowNewPlaylistInput(false)}
+                    style={{
+                      padding: "6px 12px",
+                      background: "linear-gradient(to bottom, #f0f0f0, #e0e0e0)",
+                      border: "1px solid #ccc",
+                      borderRadius: "3px",
+                      boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+                      color: "#333",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+              
+              {/* Playlist Display - Moved here from bottom */}
+              {showPlaylist && (
+                <Playlist
+                  tracks={tracks}
+                  currentTrackIndex={currentTrackIndex}
+                  onTrackSelect={handleTrackSelect}
+                  onContextMenu={handleContextMenu}
+                  onRemoveTrack={handleRemoveTrack}
+                />
+              )}
+            </div>
+
             {/* Player Section */}
             <div
               style={{
@@ -539,10 +815,9 @@ export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
               <TrackInfo
                 track={currentTrack}
                 onAlbumArtChange={() => handleAlbumArtSelector(currentTrackIndex)}
-                onPopOut={handlePopOut}
               />
 
-              {/* Controls and Playlist */}
+              {/* Controls */}
               <div
                 style={{
                   flex: "1 1 300px",
@@ -556,8 +831,8 @@ export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
                   isPlaying={isPlaying}
                   volume={volume}
                   isMuted={isMuted}
-                  progressBarRef={progressBarRef}
-                  volumeBarRef={volumeBarRef}
+                  progressBarRef={progressBarRef as React.RefObject<HTMLDivElement>}
+                  volumeBarRef={volumeBarRef as React.RefObject<HTMLDivElement>}
                   onSeek={handleSeek}
                   onVolumeChange={handleVolumeChange}
                   onTogglePlay={togglePlay}
@@ -566,7 +841,7 @@ export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
                   onToggleMute={toggleMute}
                 />
 
-                {/* Playlist Toggle */}
+                {/* Toggle Playlist Button */}
                 <div
                   style={{
                     marginBottom: "16px",
@@ -589,17 +864,6 @@ export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
                     {showPlaylist ? "Hide Playlist" : "Show Playlist"}
                   </button>
                 </div>
-
-                {/* Playlist */}
-                {showPlaylist && (
-                  <Playlist
-                    tracks={tracks}
-                    currentTrackIndex={currentTrackIndex}
-                    onTrackSelect={handleTrackSelect}
-                    onContextMenu={handleContextMenu}
-                    onRemoveTrack={handleRemoveTrack}
-                  />
-                )}
 
                 {/* Background Selector Toggle */}
                 <div
@@ -630,6 +894,131 @@ export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* YouTube Video Section */}
+            <div style={{ marginTop: "20px", marginBottom: "20px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "10px",
+                }}
+              >
+                <label
+                  style={{
+                    fontWeight: 600,
+                    color: "#333",
+                  }}
+                >
+                  YouTube Preview
+                </label>
+                <button
+                  onClick={() => setShowYoutubeInput(!showYoutubeInput)}
+                  style={{
+                    padding: "4px 8px",
+                    background: "linear-gradient(to bottom, #f0f0f0, #e0e0e0)",
+                    border: "1px solid #ccc",
+                    borderRadius: "3px",
+                    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+                    color: "#333",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                  }}
+                >
+                  {youtubeUrl ? "Change Video" : "Add Video"}
+                </button>
+              </div>
+
+              {showYoutubeInput && (
+                <div
+                  style={{
+                    marginBottom: "10px",
+                    display: "flex",
+                    gap: "8px",
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    placeholder="Enter YouTube video URL"
+                    style={{
+                      flex: 1,
+                      padding: "6px 12px",
+                      border: "1px solid #ccc",
+                      borderRadius: "3px",
+                      fontSize: "14px",
+                    }}
+                  />
+                  <button
+                    onClick={() => setShowYoutubeInput(false)}
+                    style={{
+                      padding: "6px 12px",
+                      background: "linear-gradient(to bottom, #f0f0f0, #e0e0e0)",
+                      border: "1px solid #ccc",
+                      borderRadius: "3px",
+                      boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+                      color: "#333",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Apply
+                  </button>
+                </div>
+              )}
+
+              {youtubeUrl ? (
+                <div
+                  style={{
+                    position: "relative",
+                    paddingBottom: "56.25%", // 16:9 aspect ratio
+                    height: 0,
+                    overflow: "hidden",
+                    borderRadius: "4px",
+                    border: "1px solid #ccc",
+                  }}
+                >
+                  <iframe
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                    }}
+                    src={youtubeUrl.includes('youtube.com/embed') 
+                      ? youtubeUrl 
+                      : youtubeUrl.includes('youtube.com/watch?v=') 
+                        ? youtubeUrl.replace('watch?v=', 'embed/').split('&')[0]
+                        : youtubeUrl.includes('youtu.be/')
+                          ? `https://www.youtube.com/embed/${youtubeUrl.split('youtu.be/')[1].split('?')[0]}`
+                          : youtubeUrl
+                    }
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    height: "200px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "1px dashed #ccc",
+                    borderRadius: "4px",
+                    color: "#666",
+                    fontSize: "14px",
+                  }}
+                >
+                  No YouTube video added. Click "Add Video" to embed a YouTube video.
+                </div>
+              )}
             </div>
 
             {/* Background Selector */}
@@ -666,22 +1055,10 @@ export default function MusicPlayer({ initialTracks }: MusicPlayerProps) {
         />
       )}
 
-      {/* Recent Images Bar */}
-      <RecentImagesBar
-        showRecentImages={showRecentImages}
-        setShowRecentImages={setShowRecentImages}
-        recentBackgrounds={recentBackgrounds}
-        recentAlbumArts={recentAlbumArts}
-        currentBackground={customBackground}
-        currentAlbumArt={currentTrack?.cover}
-        onBackgroundSelect={applyRecentBackground}
-        onAlbumArtSelect={applyRecentAlbumArt}
-      />
-
       {/* Hidden audio element */}
       <audio
         ref={audioRef}
-        src={currentTrack?.file}
+        src={currentTrack?.file && currentTrack.file !== '' ? currentTrack.file : undefined}
         onTimeUpdate={handleTimeUpdate}
         onDurationChange={handleDurationChange}
         onEnded={handleTrackEnd}
