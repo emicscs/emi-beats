@@ -26,6 +26,27 @@
   src: url("https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600&display=swap");
 }
 
+/* Lower resolution quality for Windows 7 theme */
+html {
+  image-rendering: optimizeSpeed;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: optimize-contrast;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+  font-smooth: never;
+  -webkit-font-smoothing: none;
+}
+
+body {
+  filter: contrast(0.95) brightness(0.95) saturate(0.9);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+img, video, canvas {
+  image-rendering: pixelated;
+}
+
 .windows7-button {
   background: linear-gradient(to bottom, #f0f0f0, #e0e0e0);
   border: 1px solid #ccc;

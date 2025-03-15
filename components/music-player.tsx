@@ -12,9 +12,12 @@ import BackgroundSelector from "./background-selector"
 import AlbumArtSelector from "./album-art-selector"
 import ContextMenu from "./context-menu"
 import WindowsTitleBar from "./windows-title-bar"
+import MessageInput from "./message-input"
+import TripleVideoDisplay from "./triple-video-display"
 
 interface MusicPlayerProps {
   initialTracks?: Track[]
+  customYoutubeVideos?: string[]
 }
 
 // Define a Playlist type
@@ -24,7 +27,13 @@ interface Playlist {
   tracks: Track[];
 }
 
-export default function MusicPlayer({ initialTracks = [] }: MusicPlayerProps) {
+export default function MusicPlayer({ 
+  initialTracks = [],
+  customYoutubeVideos = [
+    "https://www.youtube.com/embed/jNQXAC9IVRw",
+    "https://www.youtube.com/embed/9bZkp7q19f0"
+  ]
+}: MusicPlayerProps) {
   // Default album cover - define this before using it in state
   const defaultAlbumCover = "/album-covers/miscellaneous_17.jpg"
   
@@ -72,9 +81,7 @@ export default function MusicPlayer({ initialTracks = [] }: MusicPlayerProps) {
   const [showNewPlaylistInput, setShowNewPlaylistInput] = useState<boolean>(false)
   const [newPlaylistName, setNewPlaylistName] = useState<string>('')
   const gifPath = "/gifs/eminew.gif" // Set your GIF path here
-  const [youtubeUrl, setYoutubeUrl] = useState<string>('')
-  const [showYoutubeInput, setShowYoutubeInput] = useState<boolean>(false)
-
+  
   const audioRef = useRef<HTMLAudioElement>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null)
@@ -162,7 +169,7 @@ export default function MusicPlayer({ initialTracks = [] }: MusicPlayerProps) {
         
         // Create distortion
         const distortion = audioContext.createWaveShaper();
-        distortion.curve = makeDistortionCurve(0); // Amount of distortion
+        distortion.curve = makeDistortionCurve(1); // Amount of distortion
         distortionRef.current = distortion;
         
         // Connect the nodes
@@ -538,6 +545,8 @@ export default function MusicPlayer({ initialTracks = [] }: MusicPlayerProps) {
         justifyContent: "center",
         padding: "20px",
         position: "relative",
+        filter: "contrast(0.95) brightness(0.95) saturate(0.9)",
+        imageRendering: "pixelated",
       }}
     >
       {/* GIF Display Area outside the box - now using file path */}
@@ -556,6 +565,7 @@ export default function MusicPlayer({ initialTracks = [] }: MusicPlayerProps) {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
+          imageRendering: "pixelated",
         }}
       >
         <img 
@@ -564,7 +574,8 @@ export default function MusicPlayer({ initialTracks = [] }: MusicPlayerProps) {
           style={{ 
             width: "100%", 
             height: "100%", 
-            objectFit: "cover" 
+            objectFit: "cover",
+            imageRendering: "pixelated",
           }} 
         />
       </div>
@@ -586,6 +597,7 @@ export default function MusicPlayer({ initialTracks = [] }: MusicPlayerProps) {
               "0 0 10px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 255, 255, 0.1), inset 0 0 1px 1px rgba(255, 255, 255, 0.2)",
             overflow: "hidden",
             border: "1px solid rgba(255, 255, 255, 0.3)",
+            imageRendering: "pixelated",
           }}
         >
           {/* Title Bar */}
@@ -598,6 +610,9 @@ export default function MusicPlayer({ initialTracks = [] }: MusicPlayerProps) {
               background: "rgba(255, 255, 255, 0.7)",
             }}
           >
+            {/* Message Input Component */}
+            <MessageInput />
+
             {/* File Upload */}
             <div style={{ marginBottom: "20px" }}>
               <label
@@ -608,7 +623,7 @@ export default function MusicPlayer({ initialTracks = [] }: MusicPlayerProps) {
                   color: "#333",
                 }}
               >
-                Upload MP3 Files
+                upload MP3 files
               </label>
               <div
                 style={{
@@ -648,7 +663,7 @@ export default function MusicPlayer({ initialTracks = [] }: MusicPlayerProps) {
                     color: "#666",
                   }}
                 >
-                  Select MP3 files to add to your library
+                  select MP3 files to add to your library
                 </span>
               </div>
             </div>
@@ -896,130 +911,8 @@ export default function MusicPlayer({ initialTracks = [] }: MusicPlayerProps) {
               </div>
             </div>
 
-            {/* YouTube Video Section */}
-            <div style={{ marginTop: "20px", marginBottom: "20px" }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "10px",
-                }}
-              >
-                <label
-                  style={{
-                    fontWeight: 600,
-                    color: "#333",
-                  }}
-                >
-                  YouTube Preview
-                </label>
-                <button
-                  onClick={() => setShowYoutubeInput(!showYoutubeInput)}
-                  style={{
-                    padding: "4px 8px",
-                    background: "linear-gradient(to bottom, #f0f0f0, #e0e0e0)",
-                    border: "1px solid #ccc",
-                    borderRadius: "3px",
-                    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
-                    color: "#333",
-                    cursor: "pointer",
-                    fontSize: "12px",
-                  }}
-                >
-                  {youtubeUrl ? "Change Video" : "Add Video"}
-                </button>
-              </div>
-
-              {showYoutubeInput && (
-                <div
-                  style={{
-                    marginBottom: "10px",
-                    display: "flex",
-                    gap: "8px",
-                  }}
-                >
-                  <input
-                    type="text"
-                    value={youtubeUrl}
-                    onChange={(e) => setYoutubeUrl(e.target.value)}
-                    placeholder="Enter YouTube video URL"
-                    style={{
-                      flex: 1,
-                      padding: "6px 12px",
-                      border: "1px solid #ccc",
-                      borderRadius: "3px",
-                      fontSize: "14px",
-                    }}
-                  />
-                  <button
-                    onClick={() => setShowYoutubeInput(false)}
-                    style={{
-                      padding: "6px 12px",
-                      background: "linear-gradient(to bottom, #f0f0f0, #e0e0e0)",
-                      border: "1px solid #ccc",
-                      borderRadius: "3px",
-                      boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
-                      color: "#333",
-                      cursor: "pointer",
-                      fontSize: "14px",
-                    }}
-                  >
-                    Apply
-                  </button>
-                </div>
-              )}
-
-              {youtubeUrl ? (
-                <div
-                  style={{
-                    position: "relative",
-                    paddingBottom: "56.25%", // 16:9 aspect ratio
-                    height: 0,
-                    overflow: "hidden",
-                    borderRadius: "4px",
-                    border: "1px solid #ccc",
-                  }}
-                >
-                  <iframe
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: "100%",
-                    }}
-                    src={youtubeUrl.includes('youtube.com/embed') 
-                      ? youtubeUrl 
-                      : youtubeUrl.includes('youtube.com/watch?v=') 
-                        ? youtubeUrl.replace('watch?v=', 'embed/').split('&')[0]
-                        : youtubeUrl.includes('youtu.be/')
-                          ? `https://www.youtube.com/embed/${youtubeUrl.split('youtu.be/')[1].split('?')[0]}`
-                          : youtubeUrl
-                    }
-                    title="YouTube video player"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  ></iframe>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    height: "200px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    border: "1px dashed #ccc",
-                    borderRadius: "4px",
-                    color: "#666",
-                    fontSize: "14px",
-                  }}
-                >
-                  No YouTube video added. Click "Add Video" to embed a YouTube video.
-                </div>
-              )}
-            </div>
+            {/* Replace YouTube Video Section with Triple Video Display */}
+            <TripleVideoDisplay defaultVideos={customYoutubeVideos} />
 
             {/* Background Selector */}
             {showBackgroundSelector && (
