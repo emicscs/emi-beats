@@ -3,12 +3,12 @@ import type { Track } from "./types"
 export const sampleTracks: Track[] = [
   {
     id: "track-1",
-    title: "365",
-    artist: "Charli XCX",
+    title: "Lady Brown",
+    artist: "Nujabes",
     album: "365",
     duration: 217,
     cover: "/album-covers/miscellaneous_17.jpg",
-    file: "/music/Best Friend.mp3",
+    file: "/music/LadyBrown.mp3",
   },
   {
     id: "track-2",

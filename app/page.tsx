@@ -8,11 +8,13 @@ import type { Track } from "@/lib/types"
 import { formatTime } from "@/lib/utils"
 import MusicPlayer from "@/components/music-player"
 
-// Define your custom YouTube video URLs here
+// Define custom YouTube video URLs for the player
 const customYoutubeVideos = [
-  "https://www.youtube.com/watch?v=ozyqTf4CU_E&ab_channel=emino", // Replace with your actual video URLs
+  "https://www.youtube.com/watch?v=JcL0sFIm2_U&ab_channel=NBA", 
   "https://www.youtube.com/watch?v=mb9qlb9lOhA&t=73s&ab_channel=emino",
-  "https://www.youtube.com/watch?v=PcxUrrWQxdk&t=137s&ab_channel=emino"
+  "https://www.youtube.com/watch?v=eyqtWt7A2-Y&t=134s&ab_channel=emino",
+  "https://youtu.be/uAD31k3dzis?si=716kYam1jkGtqhFP",
+  "https://www.youtube.com/watch?v=qqgmrDE4p40"
 ]
 
 export default function Home() {

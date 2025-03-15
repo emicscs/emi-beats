@@ -30,6 +30,7 @@ interface Playlist {
 export default function MusicPlayer({ 
   initialTracks = [],
   customYoutubeVideos = [
+    "https://www.youtube.com/embed/dQw4w9WgXcQ",
     "https://www.youtube.com/embed/jNQXAC9IVRw",
     "https://www.youtube.com/embed/9bZkp7q19f0"
   ]
