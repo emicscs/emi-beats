@@ -4,7 +4,6 @@ import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
 import type { Track } from "@/lib/types"
-import { formatTime } from "@/lib/utils"
 import TrackInfo from "./track-info"
 import PlayerControls from "./player-controls"
 import Playlist from "./playlist"
@@ -65,7 +64,7 @@ export default function MusicPlayer({
   const [volume, setVolume] = useState<number>(0.7)
   const [isMuted, setIsMuted] = useState<boolean>(false)
   const [showPlaylist, setShowPlaylist] = useState<boolean>(true)
-  const [background, setBackground] = useState<string>("/backgrounds/windows7-default.jpg")
+  const [background, setBackground] = useState<string>("/backgrounds/asadal_stock_7.jpg")
   const [customBackground, setCustomBackground] = useState<string | null>(null)
   const [showBackgroundSelector, setShowBackgroundSelector] = useState<boolean>(false)
   const [showContextMenu, setShowContextMenu] = useState<boolean>(false)
@@ -76,12 +75,12 @@ export default function MusicPlayer({
   
   // New state for multiple playlists
   const [playlists, setPlaylists] = useState<Playlist[]>([
-    { id: 'main', name: 'Main Library', tracks: startingTracks }
+    { id: 'main', name: 'emis playlist', tracks: startingTracks }
   ])
   const [activePlaylistId, setActivePlaylistId] = useState<string>('main')
   const [showNewPlaylistInput, setShowNewPlaylistInput] = useState<boolean>(false)
   const [newPlaylistName, setNewPlaylistName] = useState<string>('')
-  const gifPath = "/gifs/eminew.gif" // Set your GIF path here
+  const gifPath = "/gifs/mygiffyboi.gif" // Set your GIF path here
   
   const audioRef = useRef<HTMLAudioElement>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -611,8 +610,7 @@ export default function MusicPlayer({
               background: "rgba(255, 255, 255, 0.7)",
             }}
           >
-            {/* Message Input Component */}
-            <MessageInput />
+
 
             {/* File Upload */}
             <div style={{ marginBottom: "20px" }}>
@@ -655,7 +653,7 @@ export default function MusicPlayer({
                     fontSize: "14px",
                   }}
                 >
-                  Browse...
+                  browse...
                 </label>
                 <span
                   style={{
@@ -746,7 +744,7 @@ export default function MusicPlayer({
                     alignItems: "center",
                   }}
                 >
-                  + New Playlist
+                  + new playlist
                 </div>
               </div>
 
@@ -786,7 +784,7 @@ export default function MusicPlayer({
                       fontSize: "14px",
                     }}
                   >
-                    Create
+                    create
                   </button>
                   <button
                     onClick={() => setShowNewPlaylistInput(false)}
@@ -801,7 +799,7 @@ export default function MusicPlayer({
                       fontSize: "14px",
                     }}
                   >
-                    Cancel
+                    cancel
                   </button>
                 </div>
               )}
@@ -906,7 +904,7 @@ export default function MusicPlayer({
                     }}
                   >
                     <span style={{ fontSize: "14px" }}>🖼️</span>
-                    <span>Change Background</span>
+                    <span>change background</span>
                   </button>
                 </div>
               </div>
@@ -914,6 +912,9 @@ export default function MusicPlayer({
 
             {/* Replace YouTube Video Section with Triple Video Display */}
             <TripleVideoDisplay defaultVideos={customYoutubeVideos} />
+
+            {/* Message Input Component */}
+            <MessageInput />
 
             {/* Background Selector */}
             {showBackgroundSelector && (

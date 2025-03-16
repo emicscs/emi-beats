@@ -62,7 +62,7 @@ export default function MessageInput() {
           color: "#333",
         }}
       >
-        send a message
+        msg me !
       </h3>
       
       {submitted ? (
