@@ -94,7 +94,7 @@ export default function TrackInfo({ track, onAlbumArtChange }: TrackInfoProps) {
           }}
         >
           <span style={{ fontSize: "16px" }}>🖼️</span>
-          <span>Change Album Art</span>
+          <span>change album art</span>
         </button>
       )}
     </div>

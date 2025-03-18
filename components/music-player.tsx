@@ -35,7 +35,7 @@ export default function MusicPlayer({
   ]
 }: MusicPlayerProps) {
   // Default album cover - define this before using it in state
-  const defaultAlbumCover = "/album-covers/miscellaneous_17.jpg"
+  const defaultAlbumCover = "/album-covers/miscellaneous_19.jpg"
   
   // Create a default track if no initialTracks are provided
   const defaultTrack: Track = {
@@ -64,7 +64,7 @@ export default function MusicPlayer({
   const [volume, setVolume] = useState<number>(0.7)
   const [isMuted, setIsMuted] = useState<boolean>(false)
   const [showPlaylist, setShowPlaylist] = useState<boolean>(true)
-  const [background, setBackground] = useState<string>("/backgrounds/asadal_stock_7.jpg")
+  const [background, setBackground] = useState<string>("/backgrounds/asadal_stock_148.jpg")
   const [customBackground, setCustomBackground] = useState<string | null>(null)
   const [showBackgroundSelector, setShowBackgroundSelector] = useState<boolean>(false)
   const [showContextMenu, setShowContextMenu] = useState<boolean>(false)
@@ -875,7 +875,7 @@ export default function MusicPlayer({
                       fontSize: "14px",
                     }}
                   >
-                    {showPlaylist ? "Hide Playlist" : "Show Playlist"}
+                    {showPlaylist ? "hide playlist" : "show playlist"}
                   </button>
                 </div>
 

@@ -17,7 +17,7 @@ export default function BackgroundSelector({
     {
       id: "1",
       name: "metro 1",
-      path: "/backgrounds/metro_1.jpg",
+      path: "/backgrounds/asadal_stock_148.jpg",
     },
     {
       id: "2",
@@ -42,7 +42,7 @@ export default function BackgroundSelector({
     {
       id: "6",
       name: "metro 6",
-      path: "/backgrounds/metro_6.jpg",
+      path: "/backgrounds/asadal_stock_151.jpg",
     },
     {
       id: "7",
@@ -97,12 +97,12 @@ export default function BackgroundSelector({
     {
       id: "17",
       name: "metro 17",
-      path: "/backgrounds/metro_17.jpg",
+      path: "/backgrounds/asadal_stock_154.jpg",
     },
     {
       id: "18",
       name: "metro 18",
-      path: "/backgrounds/metro_18.jpg",
+      path: "/backgrounds/asadal_stock_82.jpg",
     },
     {
       id: "19",
@@ -147,7 +147,7 @@ export default function BackgroundSelector({
     {
       id: "27",
       name: "metro 27",
-      path: "/backgrounds/metro_27.jpg",
+      path: "/backgrounds/asadal_stock_79.jpg",
     },
     {
       id: "28",
@@ -182,7 +182,7 @@ export default function BackgroundSelector({
     {
       id: "34",
       name: "asadal 2",
-      path: "/backgrounds/asadal_stock_2.jpg",
+      path: "/backgrounds/asadal_stock_69.jpg",
     },
     {
       id: "35",
@@ -192,7 +192,7 @@ export default function BackgroundSelector({
     {
       id: "36",
       name: "asadal 4",
-      path: "/backgrounds/asadal_stock_4.jpg",
+      path: "/backgrounds/asadal_stock_50.jpg",
     },
     {
       id: "37",
@@ -217,7 +217,7 @@ export default function BackgroundSelector({
     {
       id: "41",
       name: "asadal 9",
-      path: "/backgrounds/asadal_stock_9.jpg",
+      path: "/backgrounds/asadal_stock_40.jpg",
     },
     {
       id: "42",
@@ -239,81 +239,6 @@ export default function BackgroundSelector({
       name: "asadal 13",
       path: "/backgrounds/asadal_stock_13.jpg",
     },  
-    {
-      id: "46",
-      name: "asadal 14",
-      path: "/backgrounds/asadal_stock_14.jpg",
-    },  
-    {
-      id: "47",
-      name: "asadal 15",
-      path: "/backgrounds/asadal_stock_15.jpg",
-    },  
-    {
-      id: "48",
-      name: "asadal 16",
-      path: "/backgrounds/asadal_stock_16.jpg",
-    },  
-    { 
-      id: "49",
-      name: "asadal 17",
-      path: "/backgrounds/asadal_stock_17.jpg",
-    },  
-    {
-      id: "50",
-      name: "asadal 18",  
-      path: "/backgrounds/asadal_stock_18.jpg",
-    },  
-    {
-      id: "51",
-      name: "asadal 19",
-      path: "/backgrounds/asadal_stock_19.jpg",
-    },  
-    {
-      id: "52",
-      name: "asadal 20",
-      path: "/backgrounds/asadal_stock_20.jpg",
-    },    
-    {
-      id: "53",
-      name: "asadal 21",
-      path: "/backgrounds/asadal_stock_21.jpg",
-    },    
-    {
-      id: "54",
-      name: "asadal 22",
-      path: "/backgrounds/asadal_stock_22.jpg",
-    },      
-    {
-      id: "55",
-      name: "asadal 23",
-      path: "/backgrounds/asadal_stock_23.jpg",
-    },    
-    {
-      id: "56", 
-      name: "asadal 24",
-      path: "/backgrounds/asadal_stock_24.jpg",
-    },    
-    {
-      id: "57",
-      name: "asadal 25",  
-      path: "/backgrounds/asadal_stock_25.jpg",
-    },    
-    {
-      id: "58",
-      name: "asadal 26",
-      path: "/backgrounds/asadal_stock_26.jpg", 
-    },    
-    {
-      id: "59",
-      name: "asadal 27",
-      path: "/backgrounds/asadal_stock_27.jpg",
-    },      
-    {
-      id: "60",
-      name: "asadal 28",
-      path: "/backgrounds/asadal_stock_28.jpg",
-    },    
     
   ]
 
@@ -335,7 +260,7 @@ export default function BackgroundSelector({
           color: "#333",
         }}
       >
-        Select Background
+        select background
       </h3>
 
       <div
