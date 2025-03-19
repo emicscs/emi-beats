@@ -3,12 +3,12 @@ import type { Track } from "./types"
 export const sampleTracks: Track[] = [
   {
     id: "track-0",
-    title: "Girls Just Want to Have Fun",
-    artist: "Bladee",
+    title: "Only Us",
+    artist: "UK",
     album: "Crest",
     duration: 134,
     cover: "/album-covers/miscellaneous_46.jpg",
-    file: "/music/Girls Just Want to Have Fun.mp3",
+    file: "/music/Only Us.mp3",
   },
   {
     id: "track-1",

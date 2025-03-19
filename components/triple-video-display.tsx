@@ -56,7 +56,7 @@ export default function TripleVideoDisplay({
             color: "#333",
           }}
         >
-          my videos (might need to refresh if they dont load lol)
+          videos from channel (might need to refresh if they dont load lol)
         </label>
       </div>
 

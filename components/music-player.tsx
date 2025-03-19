@@ -63,7 +63,7 @@ export default function MusicPlayer({
   const [duration, setDuration] = useState<number>(0)
   const [volume, setVolume] = useState<number>(0.7)
   const [isMuted, setIsMuted] = useState<boolean>(false)
-  const [showPlaylist, setShowPlaylist] = useState<boolean>(true)
+  const [showPlaylist, setShowPlaylist] = useState<boolean>(false)
   const [background, setBackground] = useState<string>("/backgrounds/asadal_stock_148.jpg")
   const [customBackground, setCustomBackground] = useState<string | null>(null)
   const [showBackgroundSelector, setShowBackgroundSelector] = useState<boolean>(false)
@@ -81,6 +81,10 @@ export default function MusicPlayer({
   const [showNewPlaylistInput, setShowNewPlaylistInput] = useState<boolean>(false)
   const [newPlaylistName, setNewPlaylistName] = useState<string>('')
   const gifPath = "/gifs/mygiffyboi.gif" // Set your GIF path here
+  
+  // Add state for notes
+  const [notes, setNotes] = useState<Array<{id: string, content: string, position: {x: number, y: number}}>>([])
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(null)
   
   const audioRef = useRef<HTMLAudioElement>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -164,7 +168,7 @@ export default function MusicPlayer({
         // Create lowpass filter
         const lowpass = audioContext.createBiquadFilter();
         lowpass.type = 'lowpass';
-        lowpass.frequency.value = 2000; // Lower frequency for more "crushed" sound
+        lowpass.frequency.value = 1000; // Lower frequency for more "crushed" sound
         lowpassRef.current = lowpass;
         
         // Create distortion
@@ -532,6 +536,91 @@ export default function MusicPlayer({
     setShowContextMenu(false)
   }
 
+  // Add note function
+  const addNote = () => {
+    const newNote = {
+      id: `note-${Date.now()}`,
+      content: '',
+      position: { x: window.innerWidth - 220, y: 10 }
+    };
+    setNotes([...notes, newNote]);
+    setActiveNoteId(newNote.id);
+  };
+
+  // Delete note function
+  const deleteNote = (id: string) => {
+    setNotes(notes.filter(note => note.id !== id));
+    if (activeNoteId === id) {
+      setActiveNoteId(null);
+    }
+  };
+
+  // Update note content
+  const updateNoteContent = (id: string, content: string) => {
+    setNotes(notes.map(note => 
+      note.id === id ? { ...note, content } : note
+    ));
+  };
+
+  // Update note position
+  const updateNotePosition = (id: string, position: {x: number, y: number}) => {
+    setNotes(notes.map(note => 
+      note.id === id ? { ...note, position } : note
+    ));
+  };
+
+  // Handle note dragging
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  const handleMouseDown = (e: React.MouseEvent, noteId: string) => {
+    // Only start dragging if clicking on the title bar
+    if ((e.target as HTMLElement).classList.contains('note-title-bar')) {
+      setIsDragging(true);
+      setActiveNoteId(noteId);
+      
+      const note = notes.find(n => n.id === noteId);
+      if (note) {
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        setDragOffset({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+        });
+      }
+    }
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isDragging && activeNoteId) {
+      const note = notes.find(n => n.id === activeNoteId);
+      if (note) {
+        updateNotePosition(activeNoteId, {
+          x: e.clientX - dragOffset.x,
+          y: e.clientY - dragOffset.y
+        });
+      }
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    } else {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    }
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, activeNoteId, dragOffset]);
+
   return (
     <main
       style={{
@@ -543,9 +632,9 @@ export default function MusicPlayer({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "20px",
+        padding: "40px",
         position: "relative",
-        filter: "contrast(0.95) brightness(0.95) saturate(0.9)",
+        filter: "contrast(0.95) brightness(0.95) saturate(1.5)",
         imageRendering: "pixelated",
       }}
     >
@@ -553,19 +642,18 @@ export default function MusicPlayer({
       <div
         style={{
           position: "absolute",
-          top: "10px",
-          left: "10px",
+          top: "40px",
+          left: "45px",
           zIndex: 10,
-          width: "100px",
-          height: "100px",
+          width: "150px",
+          height: "150px",
           overflow: "hidden",
           borderRadius: "4px",
-          border: "1px solid rgba(255, 255, 255, 0.3)",
-          background: "rgba(0, 0, 0, 0.2)",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
           imageRendering: "pixelated",
+          opacity: 0.7,
         }}
       >
         <img 
@@ -578,6 +666,190 @@ export default function MusicPlayer({
             imageRendering: "pixelated",
           }} 
         />
+      </div>
+
+      {/* Description Box - updated to be non-editable and positioned right under the GIF */}
+      <div
+        style={{
+          position: "absolute",
+          left: "20px",
+          top: "220px", // Positioned just under the GIF
+          width: "220px",
+          zIndex: 10,
+          background: "rgba(255, 255, 255, 0.9)",
+          backdropFilter: "blur(10px)",
+          borderRadius: "8px",
+          boxShadow:
+            "0 0 10px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 255, 255, 0.1), inset 0 0 1px 1px rgba(255, 255, 255, 0.2)",
+          border: "1px solid rgba(255, 255, 255, 0.3)",
+          padding: "10px",
+          imageRendering: "pixelated",
+        }}
+      >
+        <div
+          style={{
+            background: "linear-gradient(to bottom, #e4e4e4, #d0d0d0)",
+            padding: "5px 8px",
+            borderBottom: "1px solid #ccc",
+            borderRadius: "4px 4px 0 0",
+            fontWeight: 600,
+            fontSize: "14px",
+            color: "#333",
+            marginBottom: "8px",
+          }}
+        >
+          about emi player
+        </div>
+        <div
+          style={{
+            width: "100%",
+            height: "240px", // Increased height
+            padding: "8px",
+            border: "1px solid #ccc",
+            borderRadius: "3px",
+            background: "white",
+            boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.1)",
+            fontSize: "13px",
+            fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+            overflowY: "auto",
+          }}
+        >
+          A nostalgic Windows 7-themed music player that lets you upload and play your MP3 files. Customize your experience with different backgrounds and album covers. Create multiple playlists to organize your music collection.
+        </div>
+      </div>
+
+      {/* Add Note Button */}
+      <div
+        style={{
+          position: "absolute",
+          top: "10px",
+          right: "10px",
+          zIndex: 10,
+        }}
+      >
+        <button
+          onClick={addNote}
+          style={{
+            padding: "8px 16px",
+            background: "linear-gradient(to bottom, #f0f0f0, #e0e0e0)",
+            border: "1px solid #ccc",
+            borderRadius: "3px",
+            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+            color: "#333",
+            cursor: "pointer",
+            fontSize: "14px",
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+          }}
+        >
+          <span>📝</span>
+          <span>jot some notes..</span>
+        </button>
+      </div>
+
+      {/* Movable Notes */}
+      {notes.map(note => (
+        <div
+          key={note.id}
+          onMouseDown={(e) => handleMouseDown(e, note.id)}
+          style={{
+            position: "absolute",
+            left: `${note.position.x}px`,
+            top: `${note.position.y}px`,
+            width: "200px",
+            zIndex: note.id === activeNoteId ? 100 : 20,
+            background: "#fdffa8",
+            borderRadius: "2px",
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            className="note-title-bar"
+            style={{
+              background: "linear-gradient(to bottom, #f7f38e, #f0eb7d)",
+              padding: "5px 8px",
+              borderBottom: "1px solid #e6de76",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              cursor: "move",
+            }}
+          >
+            <span style={{ fontSize: "12px", fontWeight: 600, color: "#555" }}>
+              note
+            </span>
+            <button
+              onClick={() => deleteNote(note.id)}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "14px",
+                color: "#555",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "16px",
+                height: "16px",
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <textarea
+            value={note.content}
+            onChange={(e) => updateNoteContent(note.id, e.target.value)}
+            style={{
+              width: "100%",
+              height: "180px",
+              padding: "8px",
+              border: "none",
+              background: "#fdffa8",
+              boxShadow: "inset 0 1px 1px rgba(0, 0, 0, 0.05)",
+              fontSize: "13px",
+              fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+              resize: "none",
+              outline: "none",
+            }}
+          />
+        </div>
+      ))}
+      
+      {/* Message Input Box - Positioned on the right side */}
+      <div
+        style={{
+          position: "absolute",
+          right: "20px",
+          bottom: "250px", // Aligned with the bottom of the main screen
+          width: "250px",
+          zIndex: 10,
+          background: "rgba(255, 255, 255, 0.9)",
+          backdropFilter: "blur(10px)",
+          borderRadius: "8px",
+          boxShadow:
+            "0 0 10px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 255, 255, 0.1), inset 0 0 1px 1px rgba(255, 255, 255, 0.2)",
+          border: "1px solid rgba(255, 255, 255, 0.3)",
+          padding: "10px",
+          imageRendering: "pixelated",
+        }}
+      >
+        <div
+          style={{
+            background: "linear-gradient(to bottom, #e4e4e4, #d0d0d0)",
+            padding: "5px 8px",
+            borderBottom: "1px solid #ccc",
+            borderRadius: "4px 4px 0 0",
+            fontWeight: 600,
+            fontSize: "14px",
+            color: "#333",
+            marginBottom: "8px",
+          }}
+        >
+          msg me!
+        </div>
+        <MessageInput />
       </div>
 
       <div
@@ -903,7 +1175,7 @@ export default function MusicPlayer({
                       gap: "8px",
                     }}
                   >
-                    <span style={{ fontSize: "14px" }}>🖼️</span>
+                    <span style={{ fontSize: "14px" }}></span>
                     <span>change background</span>
                   </button>
                 </div>
@@ -912,9 +1184,6 @@ export default function MusicPlayer({
 
             {/* Replace YouTube Video Section with Triple Video Display */}
             <TripleVideoDisplay defaultVideos={customYoutubeVideos} />
-
-            {/* Message Input Component */}
-            <MessageInput />
 
             {/* Background Selector */}
             {showBackgroundSelector && (

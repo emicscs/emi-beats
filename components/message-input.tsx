@@ -44,27 +44,7 @@ export default function MessageInput() {
   }
 
   return (
-    <div
-      style={{
-        background: "linear-gradient(to bottom, #f0f0f0, #e0e0e0)",
-        border: "1px solid #ccc",
-        borderRadius: "3px",
-        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
-        padding: "15px",
-        marginBottom: "20px",
-      }}
-    >
-      <h3
-        style={{
-          margin: "0 0 10px 0",
-          fontSize: "16px",
-          fontWeight: 600,
-          color: "#333",
-        }}
-      >
-        msg me !
-      </h3>
-      
+    <div>
       {submitted ? (
         <div
           style={{
@@ -94,6 +74,8 @@ export default function MessageInput() {
               fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
               fontSize: "14px",
               marginBottom: "10px",
+              background: "white",
+              boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.1)",
             }}
           />
           
