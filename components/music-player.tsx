@@ -102,15 +102,27 @@ export default function MusicPlayer({
   // Update tracks state when active playlist changes
   useEffect(() => {
     if (activePlaylist) {
-      setTracks(activePlaylist.tracks)
+      // Use functional update to avoid circular dependency issues
+      setTracks(() => activePlaylist.tracks)
       setCurrentTrackIndex(0)
       setIsPlaying(false)
     }
-  }, [activePlaylistId])
+  }, [activePlaylistId]) // Remove activePlaylist from dependencies to avoid circular reference
+  
+  // Get current track after tracks are updated
+  const currentTrack = tracks[currentTrackIndex] || {
+    id: 'default',
+    title: 'No Track Selected',
+    artist: 'Unknown Artist',
+    album: 'Unknown Album',
+    duration: 0,
+    cover: defaultAlbumCover,
+    file: ''
+  }
   
   // Update the active playlist when tracks change
   useEffect(() => {
-    if (activePlaylist) {
+    if (activePlaylistId) {
       setPlaylists(prevPlaylists => 
         prevPlaylists.map(p => 
           p.id === activePlaylistId 
@@ -119,7 +131,7 @@ export default function MusicPlayer({
         )
       )
     }
-  }, [tracks, activePlaylistId])
+  }, [tracks, activePlaylistId]) // Remove activePlaylist from dependencies
 
   // Create a new playlist
   const createNewPlaylist = () => {
@@ -156,6 +168,7 @@ export default function MusicPlayer({
       if (!audioRef.current || isAudioSetupComplete.current) return;
       
       try {
+        console.log("Setting up audio processing...");
         // Create audio context
         const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
         const audioContext = new AudioContext();
@@ -185,23 +198,31 @@ export default function MusicPlayer({
         isAudioSetupComplete.current = true;
         
         console.log("Audio processing setup complete");
+        
+        // Set initial volume
+        if (audioRef.current) {
+          audioRef.current.volume = volume;
+        }
       } catch (error) {
         console.error("Error setting up audio processing:", error);
       }
     };
     
-    // Try to set up audio processing
-    setupAudioProcessing();
+    // Try to set up audio processing with a delay to ensure the audio element is ready
+    const timer = setTimeout(() => {
+      setupAudioProcessing();
+    }, 500);
     
     // Clean up function
     return () => {
+      clearTimeout(timer);
       if (audioContextRef.current) {
         audioContextRef.current.close().catch(err => {
           console.error("Error closing audio context:", err);
         });
       }
     };
-  }, []);
+  }, [volume]); // Add volume as a dependency
   
   // Helper function to create distortion curve
   function makeDistortionCurve(amount: number) {
@@ -239,35 +260,66 @@ export default function MusicPlayer({
       document.removeEventListener('touchstart', resumeAudioContext);
     };
   }, []);
-  
+
+  // Update audio element when track changes
+  useEffect(() => {
+    if (audioRef.current) {
+      // Make sure the src is set properly
+      if (currentTrack?.file) {
+        audioRef.current.src = currentTrack.file;
+        audioRef.current.load();
+        
+        if (isPlaying) {
+          // Resume audio context if it's suspended
+          if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+            audioContextRef.current.resume().catch(err => {
+              console.error("Error resuming audio context:", err);
+            });
+          }
+          
+          // Play audio
+          audioRef.current.play().catch((error) => {
+            console.error("Playback failed:", error);
+            setIsPlaying(false);
+          });
+        }
+      }
+    }
+  }, [currentTrackIndex, isPlaying, currentTrack]);
+
   // Handle play/pause
   const togglePlay = () => {
     if (audioRef.current) {
       // Ensure audio processing is set up
       if (!isAudioSetupComplete.current) {
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        audioContextRef.current = new AudioContext();
-        const source = audioContextRef.current.createMediaElementSource(audioRef.current);
-        sourceNodeRef.current = source;
-        
-        const lowpass = audioContextRef.current.createBiquadFilter();
-        lowpass.type = 'lowpass';
-        lowpass.frequency.value = 1000;
-        lowpassRef.current = lowpass;
-        
-        const distortion = audioContextRef.current.createWaveShaper();
-        distortion.curve = makeDistortionCurve(30);
-        distortionRef.current = distortion;
-        
-        source.connect(lowpass);
-        lowpass.connect(distortion);
-        distortion.connect(audioContextRef.current.destination);
-        
-        isAudioSetupComplete.current = true;
+        try {
+          const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+          audioContextRef.current = new AudioContext();
+          const source = audioContextRef.current.createMediaElementSource(audioRef.current);
+          sourceNodeRef.current = source;
+          
+          const lowpass = audioContextRef.current.createBiquadFilter();
+          lowpass.type = 'lowpass';
+          lowpass.frequency.value = 1000;
+          lowpassRef.current = lowpass;
+          
+          const distortion = audioContextRef.current.createWaveShaper();
+          distortion.curve = makeDistortionCurve(30);
+          distortionRef.current = distortion;
+          
+          source.connect(lowpass);
+          lowpass.connect(distortion);
+          distortion.connect(audioContextRef.current.destination);
+          
+          isAudioSetupComplete.current = true;
+        } catch (error) {
+          console.error("Error setting up audio processing:", error);
+        }
       }
       
       if (isPlaying) {
         audioRef.current.pause();
+        setIsPlaying(false);
       } else {
         // Resume audio context if it's suspended
         if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
@@ -276,43 +328,17 @@ export default function MusicPlayer({
           });
         }
         
-        audioRef.current.play().catch(error => {
-          console.error("Playback failed:", error);
-          setIsPlaying(false);
-        });
+        if (currentTrack?.file) {
+          audioRef.current.play().catch(error => {
+            console.error("Playback failed:", error);
+          });
+          setIsPlaying(true);
+        } else {
+          console.error("No audio file to play");
+        }
       }
-      setIsPlaying(!isPlaying);
     }
   };
-  
-  // Update audio element when track changes
-  useEffect(() => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        // Resume audio context if it's suspended
-        if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-          audioContextRef.current.resume().catch(err => {
-            console.error("Error resuming audio context:", err);
-          });
-        }
-        
-        audioRef.current.play().catch((error) => {
-          console.error("Playback failed:", error)
-          setIsPlaying(false)
-        })
-      }
-    }
-  }, [currentTrackIndex, isPlaying]);
-
-  const currentTrack = tracks[currentTrackIndex] || {
-    id: 'default',
-    title: 'No Track Selected',
-    artist: 'Unknown Artist',
-    album: 'Unknown Album',
-    duration: 0,
-    cover: defaultAlbumCover,
-    file: ''
-  }
 
   // Default album art images
   const defaultAlbumArts = [
@@ -368,76 +394,103 @@ export default function MusicPlayer({
 
   // Handle previous track
   const playPreviousTrack = () => {
-    const newIndex = currentTrackIndex === 0 ? tracks.length - 1 : currentTrackIndex - 1
-    setCurrentTrackIndex(newIndex)
-    setIsPlaying(true)
-  }
+    if (tracks.length === 0) return;
+    
+    // If we're more than 3 seconds into the song, restart it instead of going to previous track
+    if (audioRef.current && audioRef.current.currentTime > 3) {
+      audioRef.current.currentTime = 0;
+      return;
+    }
+    
+    const newIndex = currentTrackIndex === 0 ? tracks.length - 1 : currentTrackIndex - 1;
+    setCurrentTrackIndex(newIndex);
+    setIsPlaying(true);
+  };
 
   // Handle next track
   const playNextTrack = () => {
-    const newIndex = currentTrackIndex === tracks.length - 1 ? 0 : currentTrackIndex + 1
-    setCurrentTrackIndex(newIndex)
-    setIsPlaying(true)
-  }
+    if (tracks.length === 0) return;
+    const newIndex = currentTrackIndex === tracks.length - 1 ? 0 : currentTrackIndex + 1;
+    setCurrentTrackIndex(newIndex);
+    setIsPlaying(true);
+  };
 
   // Handle time update
   const handleTimeUpdate = () => {
     if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime)
+      setCurrentTime(audioRef.current.currentTime);
     }
-  }
+  };
 
   // Handle duration change
   const handleDurationChange = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration)
+    if (audioRef.current && !isNaN(audioRef.current.duration)) {
+      setDuration(audioRef.current.duration);
     }
-  }
+  };
 
   // Handle seek
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     if (progressBarRef.current && audioRef.current) {
-      const rect = progressBarRef.current.getBoundingClientRect()
-      const pos = (e.clientX - rect.left) / rect.width
-      audioRef.current.currentTime = pos * duration
+      const rect = progressBarRef.current.getBoundingClientRect();
+      const pos = (e.clientX - rect.left) / rect.width;
+      const newTime = pos * duration;
+      
+      // Validate the seek position
+      if (!isNaN(newTime) && isFinite(newTime) && newTime >= 0) {
+        audioRef.current.currentTime = newTime;
+        setCurrentTime(newTime);
+      }
     }
-  }
+  };
 
   // Handle volume change
   const handleVolumeChange = (e: React.MouseEvent<HTMLDivElement>) => {
     if (volumeBarRef.current && audioRef.current) {
-      const rect = volumeBarRef.current.getBoundingClientRect()
-      const pos = (e.clientX - rect.left) / rect.width
-      const newVolume = Math.max(0, Math.min(1, pos))
-      setVolume(newVolume)
-      audioRef.current.volume = newVolume
+      const rect = volumeBarRef.current.getBoundingClientRect();
+      const pos = (e.clientX - rect.left) / rect.width;
+      const newVolume = Math.max(0, Math.min(1, pos));
+      
+      setVolume(newVolume);
+      
+      if (audioRef.current) {
+        audioRef.current.volume = newVolume;
+      }
 
       if (newVolume === 0) {
-        setIsMuted(true)
+        setIsMuted(true);
       } else {
-        setIsMuted(false)
+        setIsMuted(false);
       }
     }
-  }
+  };
 
   // Handle mute toggle
   const toggleMute = () => {
     if (audioRef.current) {
-      audioRef.current.muted = !isMuted
-      setIsMuted(!isMuted)
+      const newMutedState = !isMuted;
+      audioRef.current.muted = newMutedState;
+      setIsMuted(newMutedState);
     }
-  }
+  };
 
   // Handle track end
   const handleTrackEnd = () => {
-    playNextTrack()
-  }
+    // If we have tracks, play the next one
+    if (tracks.length > 0) {
+      playNextTrack();
+    }
+  };
 
   // Handle track selection from playlist
   const handleTrackSelect = (index: number) => {
-    setCurrentTrackIndex(index)
-    setIsPlaying(true)
-  }
+    if (index >= 0 && index < tracks.length) {
+      setCurrentTrackIndex(index);
+      setIsPlaying(true);
+      
+      // The actual playback will be handled by the useEffect that watches currentTrackIndex
+    }
+  };
 
   // Handle background change
   const handleBackgroundChange = (bg: string) => {
@@ -606,18 +659,17 @@ export default function MusicPlayer({
     setIsDragging(false);
   };
 
+  // Event handlers for mouse move
   useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    } else {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    }
+    const handleMouseMoveWrapper = (e: MouseEvent) => handleMouseMove(e);
+    const handleMouseUpWrapper = () => handleMouseUp();
+    
+    document.addEventListener('mousemove', handleMouseMoveWrapper);
+    document.addEventListener('mouseup', handleMouseUpWrapper);
     
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousemove', handleMouseMoveWrapper);
+      document.removeEventListener('mouseup', handleMouseUpWrapper);
     };
   }, [isDragging, activeNoteId, dragOffset]);
 
@@ -1197,7 +1249,6 @@ export default function MusicPlayer({
             {/* Album Art Selector */}
             {showAlbumArtSelector && (
               <AlbumArtSelector
-                defaultAlbumArts={defaultAlbumArts}
                 currentAlbumArt={albumArtSelectorTrackIndex !== null ? tracks[albumArtSelectorTrackIndex].cover : null}
                 onAlbumArtChange={handleAlbumArtChange}
                 onCustomAlbumArtUpload={handleCustomAlbumArtUpload}
@@ -1222,11 +1273,11 @@ export default function MusicPlayer({
       {/* Hidden audio element */}
       <audio
         ref={audioRef}
-        src={currentTrack?.file && currentTrack.file !== '' ? currentTrack.file : undefined}
+        src={currentTrack?.file || ''}
         onTimeUpdate={handleTimeUpdate}
         onDurationChange={handleDurationChange}
         onEnded={handleTrackEnd}
-        autoPlay={isPlaying}
+        preload="auto"
       />
     </main>
   )

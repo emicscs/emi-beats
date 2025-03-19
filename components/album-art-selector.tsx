@@ -1,10 +1,8 @@
 "use client"
 
-import path from "path"
 import type React from "react"
 
 interface AlbumArtSelectorProps {
-  defaultAlbumArts: string[]
   currentAlbumArt: string | null
   onAlbumArtChange: (artPath: string) => void
   onCustomAlbumArtUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
@@ -12,7 +10,6 @@ interface AlbumArtSelectorProps {
 }
 
 export default function AlbumArtSelector({
-  defaultAlbumArts,
   currentAlbumArt,
   onAlbumArtChange,
   onCustomAlbumArtUpload,
