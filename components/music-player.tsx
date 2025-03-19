@@ -638,15 +638,16 @@ export default function MusicPlayer({
         imageRendering: "pixelated",
       }}
     >
-      {/* GIF Display Area outside the box - now using file path */}
-      <div
+
+{/* GIF Display Area outside the box - now using file path */}
+<div
         style={{
           position: "absolute",
-          top: "40px",
-          left: "45px",
+          top: "680px",
+          left: "110px",
           zIndex: 10,
-          width: "150px",
-          height: "150px",
+          width: "110px",
+          height: "110px",
           overflow: "hidden",
           borderRadius: "4px",
           display: "flex",
@@ -668,12 +669,13 @@ export default function MusicPlayer({
         />
       </div>
 
+
       {/* Description Box - updated to be non-editable and positioned right under the GIF */}
       <div
         style={{
           position: "absolute",
           left: "20px",
-          top: "220px", // Positioned just under the GIF
+          top: "100px", // Positioned just under the GIF
           width: "220px",
           zIndex: 10,
           background: "rgba(255, 255, 255, 0.9)",
@@ -698,12 +700,12 @@ export default function MusicPlayer({
             marginBottom: "8px",
           }}
         >
-          about emi player
+          about emi beats
         </div>
         <div
           style={{
             width: "100%",
-            height: "240px", // Increased height
+            height: "430px", // Increased height
             padding: "8px",
             border: "1px solid #ccc",
             borderRadius: "3px",
@@ -714,8 +716,7 @@ export default function MusicPlayer({
             overflowY: "auto",
           }}
         >
-          A nostalgic Windows 7-themed music player that lets you upload and play your MP3 files. Customize your experience with different backgrounds and album covers. Create multiple playlists to organize your music collection.
-        </div>
+ i know its 2025 ok.. i really like fruitger aero + retro windows, and thus, emibeats was born. this page is whatever u want it to be tho. i included a note taking feature for getting ur thoughts out. u can add ur own songs and listen to them with a lpf (low pass filter) for the retro vibes. u can even change the background and album covers from my vault of frutiger-adjascent images. if u just feel like chilling here, there is a playlist of my favorite music, some youtube videos i made, and an area where u can leave a message. in a way, this is kinda like my portfolio for my creative works. enjoy ! -e        </div>
       </div>
 
       {/* Add Note Button */}
@@ -863,7 +864,7 @@ export default function MusicPlayer({
         <div
           style={{
             background: "rgba(0, 0, 0, 0.05)",
-            backdropFilter: "blur(10px)",
+            backdropFilter: "blur(100px)",
             borderRadius: "8px",
             boxShadow:
               "0 0 10px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 255, 255, 0.1), inset 0 0 1px 1px rgba(255, 255, 255, 0.2)",
@@ -873,7 +874,7 @@ export default function MusicPlayer({
           }}
         >
           {/* Title Bar */}
-          <WindowsTitleBar title="emi player 🎶" />
+          <WindowsTitleBar title="emi beats" />
 
           {/* Content */}
           <div
@@ -894,7 +895,6 @@ export default function MusicPlayer({
                   color: "#333",
                 }}
               >
-                upload MP3 files
               </label>
               <div
                 style={{

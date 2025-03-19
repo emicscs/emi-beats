@@ -70,8 +70,7 @@ const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
             gap: "8px",
           }}
         >
-          <span>🗑️</span>
-          <span>Remove from Library</span>
+          <span>remove from library</span>
         </div>
       </div>
     )
