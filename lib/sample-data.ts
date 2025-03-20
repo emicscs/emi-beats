@@ -1,17 +1,55 @@
 import type { Track } from "./types"
 
 export const sampleTracks: Track[] = [
+  
   {
-    id: "track-0",
-    title: "Only Us",
-    artist: "Artden",
-    album: "Only Us",
+    id: "track-00",
+    title: "Just For Me",
+    artist: "PinkPantheress ",
+    album: "to - with it",
     duration: 134,
-    cover: "/album-covers/miscellaneous_46.jpg",
-    file: "/music/Only Us.mp3",
+    cover: "/album-covers/Tomorrow - Image 195.jpg",
+    file: "/music/Just For Me.mp3",
   },
   {
+    id: "track-0",
+    title: "Girls Just Want To Have Fun",
+    artist: "Bladee",
+    album: "Crest",
+    duration: 134,
+    cover: "/album-covers/miscellaneous_6.jpg",
+    file: "/music/Girls Just Want To Have Fun.mp3",
+  },
+
+  {
     id: "track-1",
+    title: "Talk talk",
+    artist: "Charli XCX",
+    album: "brat",
+    duration: 272,
+    cover: "/album-covers/miscellaneous_1.jpg",
+    file: "/music/Talk talk.mp3",
+  },
+  {
+    id: "track-2",
+    title: "Sunshine",
+    artist: "Steve Lacy",
+    album: "Gemini Rights",
+    duration: 272,
+    cover: "/album-covers/miscellaneous_46.jpg",
+    file: "/music/Sunshine.mp3",
+  },
+  {
+    id: "track-3",
+    title: "Coming Home",
+    artist: "Beabadoobee",
+    album: "This is How Tomorrow Moves",
+    duration: 272,
+    cover: "/album-covers/miscellaneous_15.jpg",
+    file: "/music/Coming Home.mp3",
+  },
+  {
+    id: "track-4",
     title: "Cool With You",
     artist: "NewJeans",
     album: "NewJeans 2nd EP 'Get Up'",

@@ -181,12 +181,12 @@ export default function MusicPlayer({
         // Create lowpass filter
         const lowpass = audioContext.createBiquadFilter();
         lowpass.type = 'lowpass';
-        lowpass.frequency.value = 1000; // Lower frequency for more "crushed" sound
+        lowpass.frequency.value = 800; // Lower frequency for more "crushed" sound
         lowpassRef.current = lowpass;
         
         // Create distortion
         const distortion = audioContext.createWaveShaper();
-        distortion.curve = makeDistortionCurve(1); // Amount of distortion
+        distortion.curve = makeDistortionCurve(1.5); // Amount of distortion
         distortionRef.current = distortion;
         
         // Connect the nodes
@@ -757,7 +757,7 @@ export default function MusicPlayer({
         <div
           style={{
             width: "100%",
-            height: "430px", // Increased height
+            height: "400px", // Increased height
             padding: "8px",
             border: "1px solid #ccc",
             borderRadius: "3px",
@@ -768,7 +768,7 @@ export default function MusicPlayer({
             overflowY: "auto",
           }}
         >
- i know its 2025 ok.. i really like fruitger aero + retro windows, and thus, emibeats was born. this page is whatever u want it to be tho. i included a note taking feature for getting ur thoughts out. u can add ur own songs and listen to them with a lpf (low pass filter) for the retro vibes. u can even change the background and album covers from my vault of frutiger-adjascent images. if u just feel like chilling here, there is a playlist of my favorite music, some youtube videos i made, and an area where u can leave a message. in a way, this is kinda like my portfolio for my creative works. enjoy ! -e        </div>
+ i know its 2025 ok.. i really like fruitger aero + old windows, thus, emibeats was born. i included a note taking feature for getting ur thoughts out. u can add ur own songs and listen to them with a lpf for crushed sound quality. u can even change the background and album covers from my vault of frutiger-adjascent images. if u just feel like chilling here, there is a playlist of my favorite music, some youtube videos i made, and an area where u can leave a message. in a way, this is kinda like my portfolio for my creative works. enjoy ! -e        </div>
       </div>
 
       {/* Add Note Button */}
@@ -875,7 +875,7 @@ export default function MusicPlayer({
         style={{
           position: "absolute",
           right: "20px",
-          bottom: "250px", // Aligned with the bottom of the main screen
+          bottom: "280px", // Aligned with the bottom of the main screen
           width: "250px",
           zIndex: 10,
           background: "rgba(255, 255, 255, 0.9)",
