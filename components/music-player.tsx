@@ -11,7 +11,6 @@ import BackgroundSelector from "./background-selector"
 import AlbumArtSelector from "./album-art-selector"
 import ContextMenu from "./context-menu"
 import WindowsTitleBar from "./windows-title-bar"
-import MessageInput from "./message-input"
 import TripleVideoDisplay from "./triple-video-display"
 
 interface MusicPlayerProps {
@@ -691,228 +690,50 @@ export default function MusicPlayer({
       }}
     >
 
-{/* GIF Display Area outside the box - now using file path */}
-<div
+      {/* GIF in top left corner */}
+      <div
         style={{
-          position: "absolute",
-          top: "680px",
-          left: "110px",
-          zIndex: 10,
-          width: "110px",
-          height: "110px",
+          position: "fixed",
+          top: "10px",
+          left: "10px",
+          zIndex: 1000,
+          width: "100px",
+          height: "100px",
           overflow: "hidden",
           borderRadius: "4px",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
           imageRendering: "pixelated",
-          opacity: 0.7,
+          transition: "opacity 0.3s ease",
+          boxShadow: "0 2px 6px rgba(0, 0, 0, 0.2)",
         }}
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} // Scroll to top functionality
+        onMouseOver={(e) => (e.currentTarget.style.opacity = "1")}
+        onMouseOut={(e) => (e.currentTarget.style.opacity = "0.7")}
       >
-        <img 
-          src={gifPath} 
-          alt="Animated GIF" 
-          style={{ 
-            width: "100%", 
-            height: "100%", 
+        <img
+          src={gifPath}
+          alt="Animated GIF"
+          style={{
+            width: "100%",
+            height: "100%",
             objectFit: "cover",
             imageRendering: "pixelated",
-          }} 
+          }}
         />
       </div>
 
-
-      {/* Description Box - updated to be non-editable and positioned right under the GIF */}
-      <div
-        style={{
-          position: "absolute",
-          left: "20px",
-          top: "100px", // Positioned just under the GIF
-          width: "220px",
-          zIndex: 10,
-          background: "rgba(255, 255, 255, 0.9)",
-          backdropFilter: "blur(10px)",
-          borderRadius: "8px",
-          boxShadow:
-            "0 0 10px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 255, 255, 0.1), inset 0 0 1px 1px rgba(255, 255, 255, 0.2)",
-          border: "1px solid rgba(255, 255, 255, 0.3)",
-          padding: "10px",
-          imageRendering: "pixelated",
-        }}
-      >
-        <div
-          style={{
-            background: "linear-gradient(to bottom, #e4e4e4, #d0d0d0)",
-            padding: "5px 8px",
-            borderBottom: "1px solid #ccc",
-            borderRadius: "4px 4px 0 0",
-            fontWeight: 600,
-            fontSize: "14px",
-            color: "#333",
-            marginBottom: "8px",
-          }}
-        >
-          about emi beats
-        </div>
-        <div
-          style={{
-            width: "100%",
-            height: "400px", // Increased height
-            padding: "8px",
-            border: "1px solid #ccc",
-            borderRadius: "3px",
-            background: "white",
-            boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.1)",
-            fontSize: "13px",
-            fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-            overflowY: "auto",
-          }}
-        >
- i know its 2025 ok.. i really like fruitger aero + old windows, thus, emibeats was born. i included a note taking feature for getting ur thoughts out. u can add ur own songs and listen to them with a lpf for crushed sound quality. u can even change the background and album covers from my vault of frutiger-adjascent images. if u just feel like chilling here, there is a playlist of my favorite music, some youtube videos i made, and an area where u can leave a message. in a way, this is kinda like my portfolio for my creative works. enjoy ! -e        </div>
-      </div>
-
-      {/* Add Note Button */}
-      <div
-        style={{
-          position: "absolute",
-          top: "10px",
-          right: "10px",
-          zIndex: 10,
-        }}
-      >
-        <button
-          onClick={addNote}
-          style={{
-            padding: "8px 16px",
-            background: "linear-gradient(to bottom, #f0f0f0, #e0e0e0)",
-            border: "1px solid #ccc",
-            borderRadius: "3px",
-            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
-            color: "#333",
-            cursor: "pointer",
-            fontSize: "14px",
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-          }}
-        >
-          <span>📝</span>
-          <span>jot some notes..</span>
-        </button>
-      </div>
-
-      {/* Movable Notes */}
-      {notes.map(note => (
-        <div
-          key={note.id}
-          onMouseDown={(e) => handleMouseDown(e, note.id)}
-          style={{
-            position: "absolute",
-            left: `${note.position.x}px`,
-            top: `${note.position.y}px`,
-            width: "200px",
-            zIndex: note.id === activeNoteId ? 100 : 20,
-            background: "#fdffa8",
-            borderRadius: "2px",
-            boxShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            className="note-title-bar"
-            style={{
-              background: "linear-gradient(to bottom, #f7f38e, #f0eb7d)",
-              padding: "5px 8px",
-              borderBottom: "1px solid #e6de76",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              cursor: "move",
-            }}
-          >
-            <span style={{ fontSize: "12px", fontWeight: 600, color: "#555" }}>
-              note
-            </span>
-            <button
-              onClick={() => deleteNote(note.id)}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "#555",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "16px",
-                height: "16px",
-              }}
-            >
-              ×
-            </button>
-          </div>
-          <textarea
-            value={note.content}
-            onChange={(e) => updateNoteContent(note.id, e.target.value)}
-            style={{
-              width: "100%",
-              height: "180px",
-              padding: "8px",
-              border: "none",
-              background: "#fdffa8",
-              boxShadow: "inset 0 1px 1px rgba(0, 0, 0, 0.05)",
-              fontSize: "13px",
-              fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-              resize: "none",
-              outline: "none",
-            }}
-          />
-        </div>
-      ))}
-      
-      {/* Message Input Box - Positioned on the right side */}
-      <div
-        style={{
-          position: "absolute",
-          right: "20px",
-          bottom: "280px", // Aligned with the bottom of the main screen
-          width: "250px",
-          zIndex: 10,
-          background: "rgba(255, 255, 255, 0.9)",
-          backdropFilter: "blur(10px)",
-          borderRadius: "8px",
-          boxShadow:
-            "0 0 10px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 255, 255, 0.1), inset 0 0 1px 1px rgba(255, 255, 255, 0.2)",
-          border: "1px solid rgba(255, 255, 255, 0.3)",
-          padding: "10px",
-          imageRendering: "pixelated",
-        }}
-      >
-        <div
-          style={{
-            background: "linear-gradient(to bottom, #e4e4e4, #d0d0d0)",
-            padding: "5px 8px",
-            borderBottom: "1px solid #ccc",
-            borderRadius: "4px 4px 0 0",
-            fontWeight: 600,
-            fontSize: "14px",
-            color: "#333",
-            marginBottom: "8px",
-          }}
-        >
-          msg me!
-        </div>
-        <MessageInput />
-      </div>
-
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "800px",
-          margin: "0 auto",
-        }}
-      >
-        {/* Windows 7 Style Window */}
+      {/* Main Content Container - Restructured for vertical layout */}
+      <div style={{
+        width: "100%",
+        maxWidth: "800px",
+        margin: "0 auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: "20px"
+      }}>
+        {/* Windows 7 Style Window - Player and Playlist */}
         <div
           style={{
             background: "rgba(0, 0, 0, 0.05)",
@@ -935,8 +756,6 @@ export default function MusicPlayer({
               background: "rgba(255, 255, 255, 0.7)",
             }}
           >
-
-
             {/* File Upload */}
             <div style={{ marginBottom: "20px" }}>
               <label
@@ -1049,7 +868,6 @@ export default function MusicPlayer({
                           justifyContent: "center",
                           width: "16px",
                           height: "16px",
-                          borderRadius: "50%",
                         }}
                       >
                         ×
@@ -1234,9 +1052,6 @@ export default function MusicPlayer({
               </div>
             </div>
 
-            {/* Replace YouTube Video Section with Triple Video Display */}
-            <TripleVideoDisplay defaultVideos={customYoutubeVideos} />
-
             {/* Background Selector */}
             {showBackgroundSelector && (
               <BackgroundSelector
@@ -1257,8 +1072,169 @@ export default function MusicPlayer({
             )}
           </div>
         </div>
+
+        {/* YouTube Videos Section */}
+        <div style={{
+          background: "linear-gradient(to bottom, #e4e4e4, #d0d0d0)",
+          backdropFilter: "blur(100px)",
+          borderRadius: "8px",
+          boxShadow:
+            "0 0 10px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 255, 255, 0.1), inset 0 0 1px 1px rgba(255, 255, 255, 0.2)",
+          overflow: "hidden",
+          border: "1px solid rgba(255, 255, 255, 0.3)",
+          imageRendering: "pixelated",
+          padding: "10px",
+          marginTop: "20px",
+        }}>
+          <TripleVideoDisplay defaultVideos={customYoutubeVideos} />
+        </div>
+
+        {/* Description Box - positioned vertically beneath videos */}
+        <div
+          style={{
+          background: "linear-gradient(to bottom, #e4e4e4, #d0d0d0)",
+          backdropFilter: "blur(100px)",
+          borderRadius: "8px",
+          boxShadow:
+            "0 0 10px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 255, 255, 0.1), inset 0 0 1px 1px rgba(255, 255, 255, 0.2)",
+          overflow: "hidden",
+          border: "1px solid rgba(255, 255, 255, 0.3)",
+          imageRendering: "pixelated",
+            marginTop: "20px",
+          }}
+        >
+          <div
+            style={{
+              background: "linear-gradient(to bottom, #e4e4e4, #d0d0d0)",
+              padding: "5px 8px",
+              borderBottom: "1px solid #ccc",
+              borderRadius: "4px 4px 0 0",
+              fontWeight: 600,
+              fontSize: "14px",
+              color: "#333",
+              marginBottom: "8px",
+            }}
+          >
+            about emi beats
+          </div>
+          <div
+            style={{
+              width: "100%",
+              padding: "8px",
+              border: "1px solid #ccc",
+              borderRadius: "3px",
+              background: "white",
+              boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.1)",
+              fontSize: "13px",
+              fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+              overflowY: "auto",
+              maxHeight: "200px", // Reduced height to be more compact
+            }}
+          >
+            i know its 2025 ok.. i really like fruitger aero + old windows, thus, emibeats was born. i included a note taking feature for getting ur thoughts out. u can add ur own songs and listen to them with a lpf for crushed sound quality. u can even change the background and song covers from my vault of frutiger-adjascent images. if u just feel like chilling here, there is a playlist of my favorite music and some youtube videos i made. in a way, this is kinda like my portfolio for my creative works. enjoy ! -e
+          </div>
+        </div>
       </div>
 
+      {/* Add Note Button */}
+      <div
+        style={{
+          position: "absolute",
+          top: "10px",
+          right: "10px",
+          zIndex: 10,
+        }}
+      >
+        <button
+          onClick={addNote}
+          style={{
+            padding: "8px 16px",
+            background: "linear-gradient(to bottom, #f0f0f0, #e0e0e0)",
+            border: "1px solid #ccc",
+            borderRadius: "3px",
+            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+            color: "#333",
+            cursor: "pointer",
+            fontSize: "14px",
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+          }}
+        >
+          <span>📝</span>
+          <span>jot some notes..</span>
+        </button>
+      </div>
+
+      {/* Movable Notes */}
+      {notes.map(note => (
+        <div
+          key={note.id}
+          onMouseDown={(e) => handleMouseDown(e, note.id)}
+          style={{
+            position: "absolute",
+            left: `${note.position.x}px`,
+            top: `${note.position.y}px`,
+            width: "200px",
+            zIndex: note.id === activeNoteId ? 100 : 20,
+            background: "#fdffa8",
+            borderRadius: "2px",
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            className="note-title-bar"
+            style={{
+              background: "linear-gradient(to bottom, #f7f38e, #f0eb7d)",
+              padding: "5px 8px",
+              borderBottom: "1px solid #e6de76",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              cursor: "move",
+            }}
+          >
+            <span style={{ fontSize: "12px", fontWeight: 600, color: "#555" }}>
+              note
+            </span>
+            <button
+              onClick={() => deleteNote(note.id)}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "14px",
+                color: "#555",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "16px",
+                height: "16px",
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <textarea
+            value={note.content}
+            onChange={(e) => updateNoteContent(note.id, e.target.value)}
+            style={{
+              width: "100%",
+              height: "180px",
+              padding: "8px",
+              border: "none",
+              background: "#fdffa8",
+              boxShadow: "inset 0 1px 1px rgba(0, 0, 0, 0.05)",
+              fontSize: "13px",
+              fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+              resize: "none",
+              outline: "none",
+            }}
+          />
+        </div>
+      ))}
+      
       {/* Context Menu */}
       {showContextMenu && contextMenuTrackIndex !== null && (
         <ContextMenu
