@@ -12,6 +12,16 @@ import AlbumArtSelector from "./album-art-selector"
 import ContextMenu from "./context-menu"
 import WindowsTitleBar from "./windows-title-bar"
 import TripleVideoDisplay from "./triple-video-display"
+import MixerPanel from "./mixer-panel"
+import {
+  applyMixerSettings,
+  attachMixer,
+  createMixerGraph,
+  DEFAULT_MIXER,
+  readAttachedMixer,
+  type MixerGraph,
+  type MixerSettings,
+} from "@/lib/mixer"
 
 interface MusicPlayerProps {
   initialTracks?: Track[]
@@ -85,12 +95,16 @@ export default function MusicPlayer({
   const [notes, setNotes] = useState<Array<{id: string, content: string, position: {x: number, y: number}}>>([])
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null)
   
+  const [mixer, setMixer] = useState<MixerSettings>(DEFAULT_MIXER)
+
   const audioRef = useRef<HTMLAudioElement>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
-  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null)
-  const lowpassRef = useRef<BiquadFilterNode | null>(null)
-  const distortionRef = useRef<WaveShaperNode | null>(null)
+  const graphRef = useRef<MixerGraph | null>(null)
   const isAudioSetupComplete = useRef<boolean>(false)
+  const mixerRef = useRef(mixer)
+  const volumeRef = useRef(volume)
+  mixerRef.current = mixer
+  volumeRef.current = volume
   const progressBarRef = useRef<HTMLDivElement>(null)
   const volumeBarRef = useRef<HTMLDivElement>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
@@ -160,83 +174,49 @@ export default function MusicPlayer({
     }
   }
 
-  // Set up audio processing once when the component mounts
-  useEffect(() => {
-    // Initialize audio processing when the audio element is available
-    const setupAudioProcessing = () => {
-      if (!audioRef.current || isAudioSetupComplete.current) return;
-      
-      try {
-        console.log("Setting up audio processing...");
-        // Create audio context
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        const audioContext = new AudioContext();
-        audioContextRef.current = audioContext;
-        
-        // Create source node
-        const source = audioContext.createMediaElementSource(audioRef.current);
-        sourceNodeRef.current = source;
-        
-        // Create lowpass filter
-        const lowpass = audioContext.createBiquadFilter();
-        lowpass.type = 'lowpass';
-        lowpass.frequency.value = 800; // Lower frequency for more "crushed" sound
-        lowpassRef.current = lowpass;
-        
-        // Create distortion
-        const distortion = audioContext.createWaveShaper();
-        distortion.curve = makeDistortionCurve(1.5); // Amount of distortion
-        distortionRef.current = distortion;
-        
-        // Connect the nodes
-        source.connect(lowpass);
-        lowpass.connect(distortion);
-        distortion.connect(audioContext.destination);
-        
-        // Mark setup as complete
-        isAudioSetupComplete.current = true;
-        
-        console.log("Audio processing setup complete");
-        
-        // Set initial volume
-        if (audioRef.current) {
-          audioRef.current.volume = volume;
-        }
-      } catch (error) {
-        console.error("Error setting up audio processing:", error);
-      }
-    };
-    
-    // Try to set up audio processing with a delay to ensure the audio element is ready
-    const timer = setTimeout(() => {
-      setupAudioProcessing();
-    }, 500);
-    
-    // Clean up function
-    return () => {
-      clearTimeout(timer);
-      if (audioContextRef.current) {
-        audioContextRef.current.close().catch(err => {
-          console.error("Error closing audio context:", err);
-        });
-      }
-    };
-  }, [volume]); // Add volume as a dependency
-  
-  // Helper function to create distortion curve
-  function makeDistortionCurve(amount: number) {
-    const k = typeof amount === 'number' ? amount : 50;
-    const n_samples = 44100;
-    const curve = new Float32Array(n_samples);
-    const deg = Math.PI / 180;
-    
-    for (let i = 0; i < n_samples; ++i) {
-      const x = (i * 2) / n_samples - 1;
-      curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+  const ensureAudioGraph = () => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    const existing = readAttachedMixer(audio)
+    if (existing) {
+      audioContextRef.current = existing.ctx
+      graphRef.current = existing.graph
+      isAudioSetupComplete.current = true
+      applyMixerSettings(existing.graph, existing.ctx, mixerRef.current)
+      audio.volume = volumeRef.current
+      return
     }
-    
-    return curve;
+
+    if (isAudioSetupComplete.current) return
+    isAudioSetupComplete.current = true
+
+    try {
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      const audioContext = new AudioContextClass()
+      const graph = createMixerGraph(audio, audioContext)
+      attachMixer(audio, { ctx: audioContext, graph })
+      audioContextRef.current = audioContext
+      graphRef.current = graph
+      applyMixerSettings(graph, audioContext, mixerRef.current)
+      audio.volume = volumeRef.current
+    } catch (error) {
+      isAudioSetupComplete.current = false
+      console.error("Error setting up audio processing:", error)
+    }
   }
+
+  // The graph stays on the audio element. Dev remounts reuse it, because a
+  // media element can only be wired into Web Audio once.
+  useEffect(() => {
+    ensureAudioGraph()
+  }, [])
+
+  useEffect(() => {
+    if (graphRef.current && audioContextRef.current) {
+      applyMixerSettings(graphRef.current, audioContextRef.current, mixer)
+    }
+  }, [mixer])
   
   // Resume audio context when user interacts with the page
   useEffect(() => {
@@ -289,32 +269,7 @@ export default function MusicPlayer({
   // Handle play/pause
   const togglePlay = () => {
     if (audioRef.current) {
-      // Ensure audio processing is set up
-      if (!isAudioSetupComplete.current) {
-        try {
-          const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-          audioContextRef.current = new AudioContext();
-          const source = audioContextRef.current.createMediaElementSource(audioRef.current);
-          sourceNodeRef.current = source;
-          
-          const lowpass = audioContextRef.current.createBiquadFilter();
-          lowpass.type = 'lowpass';
-          lowpass.frequency.value = 1000;
-          lowpassRef.current = lowpass;
-          
-          const distortion = audioContextRef.current.createWaveShaper();
-          distortion.curve = makeDistortionCurve(30);
-          distortionRef.current = distortion;
-          
-          source.connect(lowpass);
-          lowpass.connect(distortion);
-          distortion.connect(audioContextRef.current.destination);
-          
-          isAudioSetupComplete.current = true;
-        } catch (error) {
-          console.error("Error setting up audio processing:", error);
-        }
-      }
+      ensureAudioGraph()
       
       if (isPlaying) {
         audioRef.current.pause();
@@ -734,8 +689,15 @@ export default function MusicPlayer({
         gap: "20px"
       }}>
         {/* Windows 7 Style Window - Player and Playlist */}
+        <div style={{ position: "relative" }}>
+        <MixerPanel
+          settings={mixer}
+          onChange={(key, value) => setMixer((current) => ({ ...current, [key]: value }))}
+        />
         <div
           style={{
+            position: "relative",
+            zIndex: 3,
             background: "rgba(0, 0, 0, 0.05)",
             backdropFilter: "blur(100px)",
             borderRadius: "8px",
@@ -1071,6 +1033,7 @@ export default function MusicPlayer({
               />
             )}
           </div>
+        </div>
         </div>
 
         {/* YouTube Videos Section */}
