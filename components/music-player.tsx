@@ -105,6 +105,8 @@ export default function MusicPlayer({
   const volumeRef = useRef(volume)
   mixerRef.current = mixer
   volumeRef.current = volume
+  const isPlayingRef = useRef(isPlaying)
+  isPlayingRef.current = isPlaying
   const progressBarRef = useRef<HTMLDivElement>(null)
   const volumeBarRef = useRef<HTMLDivElement>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
@@ -240,31 +242,43 @@ export default function MusicPlayer({
     };
   }, []);
 
-  // Update audio element when track changes
+  const currentFile = currentTrack?.file
+
+  // Only a new file reloads the audio; cover and metadata edits leave playback alone
   useEffect(() => {
-    if (audioRef.current) {
-      // Make sure the src is set properly
-      if (currentTrack?.file) {
-        audioRef.current.src = currentTrack.file;
-        audioRef.current.load();
-        
-        if (isPlaying) {
-          // Resume audio context if it's suspended
-          if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-            audioContextRef.current.resume().catch(err => {
-              console.error("Error resuming audio context:", err);
-            });
-          }
-          
-          // Play audio
-          audioRef.current.play().catch((error) => {
-            console.error("Playback failed:", error);
-            setIsPlaying(false);
-          });
-        }
-      }
+    const audio = audioRef.current
+    if (!audio || !currentFile) return
+
+    audio.src = currentFile
+    audio.load()
+
+    if (isPlayingRef.current) {
+      audioContextRef.current?.resume().catch(err => {
+        console.error("Error resuming audio context:", err);
+      });
+      audio.play().catch((error) => {
+        console.error("Playback failed:", error);
+        setIsPlaying(false);
+      });
     }
-  }, [currentTrackIndex, isPlaying, currentTrack]);
+  }, [currentFile]);
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio || !currentFile) return
+
+    if (isPlaying && audio.paused) {
+      audioContextRef.current?.resume().catch(err => {
+        console.error("Error resuming audio context:", err);
+      });
+      audio.play().catch((error) => {
+        console.error("Playback failed:", error);
+        setIsPlaying(false);
+      });
+    } else if (!isPlaying && !audio.paused) {
+      audio.pause()
+    }
+  }, [isPlaying, currentFile]);
 
   // Handle play/pause
   const togglePlay = () => {
@@ -654,14 +668,12 @@ export default function MusicPlayer({
           zIndex: 1000,
           width: "100px",
           height: "100px",
-          overflow: "hidden",
-          borderRadius: "4px",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
           imageRendering: "pixelated",
           transition: "opacity 0.3s ease",
-          boxShadow: "0 2px 6px rgba(0, 0, 0, 0.2)",
+          cursor: "pointer",
         }}
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} // Scroll to top functionality
         onMouseOver={(e) => (e.currentTarget.style.opacity = "1")}
